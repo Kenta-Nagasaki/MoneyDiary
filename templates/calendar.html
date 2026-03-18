@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block title %}家計簿カレンダー{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<style>
+ .memo-line {
+  grid-column: 1 / -1;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: -2px;
+}
+main.calendar-layout {
+    max-width: 980px;
+    margin: 12px auto;
+    padding: 0 12px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1.4fr 1fr;
+  }
+
+  #calendar {
+    padding: 6px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    box-sizing: border-box;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: #14b8c6;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button:hover {
+    filter: brightness(0.95);
+  }
+.detail-meta {
+  margin-top: 8px;
+}
+
+.detail-meta .memo-text,
+.detail-meta .income-text,
+.detail-meta .expense-text {
+  margin-left: 0;
+}
+  .type-switch {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .type-switch button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 12px;
+    background: #e5e7eb;
+    color: #111827;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .type-switch button.active {
+    background: #14b8c6;
+    color: white;
+  }
+
+  .muted {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+
+ li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.detail-main {
+  min-width: 0;
+}
+
+.amt {
+  font-weight: 800;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.delete-btn {
+  width: auto;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #ef4444;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+  .tag {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+  }
+
+  .cat-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+
+
+  .danger {
+    background: #ef4444;
+  }
+
+  .danger:hover {
+    filter: brightness(0.95);
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .income-text {
+    color: #2563eb;
+    font-weight: 700;
+    margin-left: 8px;
+  }
+
+  .expense-text {
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 8px;
+  }
+
+  .memo-text {
+    margin-left: 8px;
+    color: #374151;
+  }
+
+  .category-preview {
+  margin-top: 8px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.category-path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.category-path-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex: 0 0 40px;
+}
+
+.category-path-text {
+  color: #111827;
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.category-path-sep {
+  color: #111827;
+  font-weight: 700;
+}
+
+.category-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.category-dual.single {
+  grid-template-columns: 1fr;
+}
+
+  @media (max-width: 900px) {
+    main.calendar-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="calendar-layout">
+  <section class="card">
+    <div id="calendar"></div>
+    <div class="muted">日付クリック：その日の明細表示 / 何もない日付でも入力できます</div>
+  </section>
+
+  <aside class="card">
+    <h3 id="formTitle" style="margin: 4px 0 10px;">入力（支出）</h3>
+
+    <div class="type-switch">
+      <button type="button" id="expenseBtn" class="active">支出</button>
+      <button type="button" id="incomeBtn">収入</button>
+    </div>
+
+    <div class="row">
+      <div class="muted">日付</div>
+      <input id="date" type="date" />
+    </div>
+
+    <div class="row">
+      <div class="muted">金額</div>
+      <input id="amount" type="number" inputmode="numeric" placeholder="例: 500" />
+    </div>
+
+    <div class="row">
+      <div class="muted">カテゴリ</div>
+      <div id="categoryDual" class="category-dual">
+        <select id="category"></select>
+        <select id="subcategory"></select>
+      </div>
+    </div>
+
+    <div class="category-preview">
+      <span id="categoryPreview"></span>
+    </div>
+
+    <div class="row">
+      <div class="muted">メモ</div>
+      <input id="memo" type="text" placeholder="例: コンビニ / 友達とご飯" />
+    </div>
+
+    <button id="save">保存</button>
+
+    <div class="actions">
+      <button id="clear" class="danger">フォームクリア</button>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 12px 0;" />
+
+    <h3 style="margin: 0 0 6px;">その日の明細</h3>
+    <div class="muted" id="selectedLabel">日付を選択してください</div>
+    <ul id="list"></ul>
+  </aside>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const $ = (id) => document.getElementById(id);
+  const CATEGORY_DATA = {{ categories | tojson }};
+  const SUBCATEGORY_DATA = {
+    "食費": ["食料品", "カフェ", "朝ご飯", "昼ご飯", "晩ご飯", "その他"],
+    "交際費": ["飲み会", "プレゼント", "ご祝儀・香典", "その他"],
+    "日用雑貨": ["消耗品", "子ども関連", "ペット関連", "タバコ", "その他"],
+    "住まい": ["家賃", "住宅ローン返済", "家具", "家電", "リフォーム", "住宅保険", "その他"],
+    "趣味": ["レジャー", "イベント", "映画・動画", "音楽", "漫画", "書籍", "ゲーム", "その他"],
+    "水道・光熱費": ["水道料金", "電気料金", "ガス料金", "その他"],
+    "通信": ["携帯電話料金", "固定電話料金", "インターネット関連費", "放送サービス料金", "宅配便", "切手・はがき", "その他"],
+    "クルマ": ["ガソリン", "駐車場", "自動車保険", "自動車税", "自動車ローン", "免許教習", "高速料金", "その他"],
+    "交通": ["電車", "タクシー", "バス", "飛行機", "その他"],
+    "美容": ["洋服", "アクセサリー・小物", "下着", "ジム・健康", "美容院", "コスメ", "エステ・ネイル", "クリーニング", "その他"],
+    "医療・保健": ["病院代", "薬代", "生命保険", "医療保険", "その他"],
+    "税金": ["年金", "所得税", "消費税", "住民税", "個人事業税", "その他"],
+    "教育": ["習い事", "新聞", "参考書", "受験料", "学費", "学資保険", "塾", "その他"],
+    "大型出費": ["旅行", "住宅", "自動車", "バイク", "結婚", "出産", "介護", "家具", "家電", "その他"],
+    "その他": ["仕送り", "お小遣い", "使途不明金", "立替金", "未分類", "現金の引出", "その他", "カードの引落", "電子マネーにチャージ"]
+  };
+
+  let txType = "expense";
+  let calendar;
+
+  function hexToRgb(hex) {
+    const value = hex.replace("#", "");
+    const normalized = value.length === 3
+      ? value.split("").map(ch => ch + ch).join("")
+      : value;
+
+    const bigint = parseInt(normalized, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255
+    };
+  }
+
+  function withAlpha(hex, alpha) {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function getCategoryMeta(type, categoryName) {
+    const data = CATEGORY_DATA[type] || [];
+    const found = data.find(item => item.name === categoryName);
+
+    if (found) {
+      return found;
+    }
+
+    return {
+      name: categoryName,
+      icon: "•",
+      color: "#94A3B8"
+    };
+  }
+  function makeCategoryBadge(meta, label, extraClass = "") {
+  const bg = withAlpha(meta.color, 0.16);
+
+  return `
+    <span class="tag ${extraClass}" style="background:${bg}; color:${meta.color};">
+      <span class="cat-icon">${meta.icon}</span>
+      <span>${label}</span>
+    </span>
+  `;
+}
+  function makeCategoryPath(meta, categoryLabel, subcategoryLabel = "") {
+  const iconBg = withAlpha(meta.color, 0.16);
+
+  return `
+    <span class="category-path">
+      <span class="category-path-icon" style="background:${iconBg};">
+        <span class="cat-icon" style="color:${meta.color};">${meta.icon}</span>
+      </span>
+      <span class="category-path-text">${categoryLabel}</span>
+      ${subcategoryLabel ? `<span class="category-path-sep">&gt;</span><span class="category-path-text">${subcategoryLabel}</span>` : ""}
+    </span>
+  `;
+}
+
+  function updateCategoryOptions() {
+    const select = $("category");
+    select.innerHTML = "";
+
+    const data = CATEGORY_DATA[txType];
+
+    for (const item of data) {
+      const option = document.createElement("option");
+      option.value = item.name;
+      option.textContent = `${item.icon} ${item.name}`;
+      select.appendChild(option);
+    }
+
+    if (txType === "expense") {
+      select.value = "食費";
+    } else {
+      select.value = "給与所得";
+    }
+
+    updateSubcategoryOptions();
+  }
+
+  function updateSubcategoryOptions() {
+    const subSelect = $("subcategory");
+    const dual = $("categoryDual");
+    subSelect.innerHTML = "";
+
+    if (txType !== "expense") {
+      dual.classList.add("single");
+      subSelect.style.display = "none";
+      updateCategoryPreview();
+      return;
+    }
+
+    dual.classList.remove("single");
+    subSelect.style.display = "";
+
+    const categoryName = $("category").value;
+    const subcategories = SUBCATEGORY_DATA[categoryName] || [];
+
+    for (const name of subcategories) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      subSelect.appendChild(option);
+    }
+
+    if (subcategories.length > 0) {
+      subSelect.value = subcategories[0];
+    }
+
+    updateCategoryPreview();
+  }
+
+ function updateCategoryPreview() {
+  const categoryName = $("category").value;
+  const meta = getCategoryMeta(txType, categoryName);
+  const preview = $("categoryPreview");
+
+  if (txType === "expense") {
+    const subcategory = $("subcategory").value || "";
+    preview.innerHTML = makeCategoryPath(meta, categoryName, subcategory);
+  } else {
+    preview.innerHTML = makeCategoryPath(meta, categoryName);
+  }
+}
+
+  function updateTypeUI() {
+    if (txType === "expense") {
+      $("expenseBtn").classList.add("active");
+      $("incomeBtn").classList.remove("active");
+      $("formTitle").textContent = "入力（支出）";
+    } else {
+      $("incomeBtn").classList.add("active");
+      $("expenseBtn").classList.remove("active");
+      $("formTitle").textContent = "入力（収入）";
+    }
+
+    updateCategoryOptions();
+  }
+
+  function setDate(d) {
+    $("date").value = d;
+    $("selectedLabel").textContent = `${d} の明細`;
+    loadDay(d);
+  }
+
+  async function loadDay(d) {
+    const res = await fetch(`/api/day?date=${encodeURIComponent(d)}`);
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    const items = await res.json();
+    const ul = $("list");
+    ul.innerHTML = "";
+
+    if (!items.length) {
+      ul.innerHTML = `<li><span class="muted">明細なし</span><span></span></li>`;
+      return;
+    }
+
+  for (const it of items) {
+  const memo = it.memo
+    ? `<div class="memo-line">(${it.memo})</div>`
+    : "";
+
+  const meta = getCategoryMeta(it.type, it.category);
+
+  const categoryLine = it.type === "expense"
+    ? makeCategoryPath(meta, it.category, it.subcategory || "")
+    : makeCategoryPath(meta, it.category);
+
+  const left = `
+    <div class="detail-main">
+      ${categoryLine}
+    </div>
+  `;
+
+  const amount = `
+    <span class="amt">${Number(it.amount).toLocaleString()}円</span>
+  `;
+
+  const deleteButton = `
+    <button class="delete-btn"
+      onclick="deleteTx(${it.id}, '${it.tx_date}')">削除</button>
+  `;
+
+  const li = document.createElement("li");
+  li.innerHTML = left + amount + deleteButton + memo;
+  ul.appendChild(li);
+}
+  }
+
+  async function deleteTx(id, d) {
+    const res = await fetch("/api/delete", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({id})
+    });
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    await calendar.refetchEvents();
+    await loadDay(d);
+  }
+
+  $("expenseBtn").addEventListener("click", () => {
+    txType = "expense";
+    updateTypeUI();
+  });
+
+  $("incomeBtn").addEventListener("click", () => {
+    txType = "income";
+    updateTypeUI();
+  });
+
+  $("category").addEventListener("change", updateSubcategoryOptions);
+  $("subcategory").addEventListener("change", updateCategoryPreview);
+
+  $("save").addEventListener("click", async () => {
+    const payload = {
+      date: $("date").value,
+      amount: $("amount").value,
+      category: $("category").value,
+      subcategory: txType === "expense" ? $("subcategory").value : "",
+      memo: $("memo").value,
+      type: txType
+    };
+
+    const res = await fetch("/api/add", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      alert("保存に失敗: " + (e.error || res.statusText));
+      return;
+    }
+
+    $("amount").value = "";
+    $("memo").value = "";
+    await calendar.refetchEvents();
+    await loadDay(payload.date);
+  });
+
+  $("clear").addEventListener("click", () => {
+    $("amount").value = "";
+    $("memo").value = "";
+  });
+
+  const initialDate = "{{ today }}";
+  $("date").value = initialDate;
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const el = document.getElementById("calendar");
+
+    calendar = new FullCalendar.Calendar(el, {
+      initialView: "dayGridMonth",
+      initialDate: initialDate,
+      locale: "ja",
+      height: "auto",
+      fixedWeekCount: false,
+      showNonCurrentDates: true,
+      headerToolbar: {
+        left: "prev,next",
+        center: "title",
+        right: ""
+      },
+      dateClick: (info) => {
+        setDate(info.dateStr);
+      },
+      events: "/api/events"
+    });
+
+    calendar.render();
+    updateTypeUI();
+    setDate(initialDate);
+  });
+</script>
+{% endblock %}

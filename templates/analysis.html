@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block title %}分析 | 家計簿カレンダー{% endblock %}
+
+{% block body %}
+<main class="page-shell">
+  <section class="card">
+    <div class="month-row">
+      <button type="button" class="month-nav-btn" id="prevMonthBtn">‹</button>
+      <div class="month-label" id="monthLabel">-</div>
+      <button type="button" class="month-nav-btn" id="nextMonthBtn">›</button>
+    </div>
+
+    <div class="budget-summary-card">
+      <div class="budget-summary-left">
+        <div class="budget-summary-title">月予算</div>
+        <div class="budget-summary-amount" id="monthBudgetAmount">未設定</div>
+      </div>
+
+      <button type="button" id="setMonthBudgetBtn" class="budget-summary-btn">設定</button>
+    </div>
+
+    <div class="budget-detail-card">
+      <div class="budget-detail-spent" id="monthSpent">¥0</div>
+      <div class="budget-detail-remaining" id="monthRemaining">残 --</div>
+
+      <div class="budget-detail-track">
+        <div class="budget-detail-fill" id="monthBudgetBar"></div>
+      </div>
+    </div>
+
+    <h3>カテゴリ別予算</h3>
+    <ul id="categoryBudgetList" class="category-budget-list"></ul>
+  </section>
+</main>
+
+<style>
+  .month-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .month-nav-btn {
+    border: none;
+    background: transparent;
+    font-size: 34px;
+    line-height: 1;
+    color: #65b96d;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .month-label {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .budget-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px;
+    background: #f3f3f3;
+    margin-bottom: 14px;
+  }
+
+  .budget-summary-left {
+    display: flex;
+    align-items: center;
+    gap: 34px;
+    min-width: 0;
+  }
+
+  .budget-summary-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+  }
+
+  .budget-summary-amount {
+  font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .budget-summary-btn {
+    width: auto;
+    border: none;
+    background: transparent;
+    color: #65b96d;
+    font-size: 28px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+  }
+
+  .budget-detail-card {
+    margin-bottom: 28px;
+    padding: 8px 4px 0;
+  }
+
+  .budget-detail-spent {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.15;
+  }
+
+  .budget-detail-remaining {
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #6b7280;
+  }
+
+  .budget-detail-remaining.over {
+    color: #ef4444;
+  }
+
+  .budget-detail-track {
+    width: 100%;
+    height: 16px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+
+  .budget-detail-fill {
+    height: 100%;
+    width: 0%;
+    background: #6bbf73;
+    border-radius: 999px;
+    transition: width .2s ease;
+  }
+
+  .category-budget-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .category-budget-item {
+    padding: 16px 0;
+    border-top: 1px solid #ececec;
+  }
+
+  .category-budget-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .category-budget-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .category-budget-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .category-budget-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .category-budget-right {
+    text-align: right;
+  }
+
+  .category-budget-spent {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+  }
+
+  .category-budget-meta {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+  }
+
+  .category-budget-meta.over {
+    color: #ef4444;
+  }
+
+  .category-budget-track {
+    width: 100%;
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .category-budget-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    transition: width .2s ease;
+  }
+
+  .category-budget-btn {
+    width: auto;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    .month-label {
+      font-size: 20px;
+    }
+
+    .budget-summary-card {
+      padding: 18px 18px;
+      margin-bottom: 12px;
+    }
+
+    .budget-summary-left {
+      gap: 18px;
+    }
+
+    .budget-summary-title {
+      font-size: 22px;
+    }
+
+    .budget-summary-amount {
+      font-size: 28px;
+    }
+
+    .budget-summary-btn {
+      font-size: 22px;
+    }
+
+    .budget-detail-spent {
+      font-size: 24px;
+    }
+
+    .budget-detail-remaining {
+      font-size: 16px;
+    }
+
+    .category-budget-head {
+      grid-template-columns: auto 1fr auto;
+    }
+
+    .category-budget-btn {
+      grid-column: 1 / -1;
+      justify-self: end;
+    }
+
+    .category-budget-name {
+      font-size: 18px;
+    }
+  }
+</style>
+
+<script>
+  let currentMonth = "{{ current_month }}";
+
+  function formatYen(value) {
+    const num = Number(value || 0);
+    return "¥" + num.toLocaleString();
+  }
+
+  function clampBudgetWidth(ratio) {
+    return Math.max(0, Math.min(Number(ratio || 0), 100));
+  }
+
+  function withAlpha(hex, alpha) {
+    const value = hex.replace("#", "");
+    const normalized = value.length === 3
+      ? value.split("").map(ch => ch + ch).join("")
+      : value;
+
+    const bigint = parseInt(normalized, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function formatMonthLabel(monthStr) {
+    const [year, month] = monthStr.split("-");
+    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    return `${Number(month)}月1日 ～ ${lastDay}日`;
+  }
+
+  function shiftMonth(monthStr, diff) {
+    const [year, month] = monthStr.split("-").map(Number);
+    const date = new Date(year, month - 1 + diff, 1);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  }
+
+  function updateMonthLabel() {
+    document.getElementById("monthLabel").textContent = formatMonthLabel(currentMonth);
+  }
+
+  function getCategoryBudgetMetaText(item) {
+    if (!item.has_budget) {
+      return "予算 未設定";
+    }
+
+    if (Number(item.budget_remaining) < 0) {
+      return `予算 ${formatYen(item.budget_amount)} ・ 超過 ${formatYen(Math.abs(item.budget_remaining))}`;
+    }
+
+    return `予算 ${formatYen(item.budget_amount)} ・ 残 ${formatYen(item.budget_remaining)}`;
+  }
+
+  async function loadBudget() {
+    updateMonthLabel();
+
+    const res = await fetch(`/api/graph_month?month=${encodeURIComponent(currentMonth)}`);
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert("分析データの取得に失敗しました。");
+      return;
+    }
+
+    const monthBudget = data.expense_budget || {
+      spent: 0,
+      budget_amount: 0,
+      budget_remaining: 0,
+      budget_ratio: 0,
+      has_budget: false,
+      is_over_budget: false
+    };
+
+    document.getElementById("monthBudgetAmount").textContent =
+      monthBudget.has_budget ? formatYen(monthBudget.budget_amount) : "未設定";
+
+    document.getElementById("monthSpent").textContent =
+      formatYen(monthBudget.spent);
+
+    const monthRemaining = document.getElementById("monthRemaining");
+    const monthBudgetBar = document.getElementById("monthBudgetBar");
+
+    if (monthBudget.has_budget) {
+      if (monthBudget.budget_remaining < 0) {
+        monthRemaining.textContent = `残 -${formatYen(Math.abs(monthBudget.budget_remaining)).replace("¥", "¥")}`;
+        monthRemaining.classList.add("over");
+        monthBudgetBar.style.background = "#ef4444";
+      } else {
+        monthRemaining.textContent = `残 ${formatYen(monthBudget.budget_remaining)}`;
+        monthRemaining.classList.remove("over");
+        monthBudgetBar.style.background = "#6bbf73";
+      }
+
+      monthBudgetBar.style.width = clampBudgetWidth(monthBudget.budget_ratio) + "%";
+    } else {
+      monthRemaining.textContent = "残 --";
+      monthRemaining.classList.remove("over");
+      monthBudgetBar.style.width = "0%";
+      monthBudgetBar.style.background = "#d1d5db";
+    }
+
+    renderCategoryBudgets(data.expense_categories || []);
+  }
+
+  function renderCategoryBudgets(categories) {
+    const ul = document.getElementById("categoryBudgetList");
+    ul.innerHTML = "";
+
+    categories.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "category-budget-item";
+
+      const ratio = item.has_budget ? clampBudgetWidth(item.budget_ratio) : 0;
+      const bg = withAlpha(item.color, 0.16);
+
+      li.innerHTML = `
+        <div class="category-budget-head">
+          <div class="category-budget-icon-wrap" style="background:${bg};">
+            <div class="category-budget-icon">${item.icon}</div>
+          </div>
+
+          <div>
+            <div class="category-budget-name" style="color:${item.color};">${item.name}</div>
+            <div class="category-budget-meta ${item.is_over_budget ? "over" : ""}">
+              ${getCategoryBudgetMetaText(item)}
+            </div>
+          </div>
+
+          <div class="category-budget-right">
+            <div class="category-budget-spent">${formatYen(item.total)}</div>
+          </div>
+
+          <button
+            type="button"
+            class="category-budget-btn"
+            data-category="${item.name}"
+            data-budget="${item.budget_amount || 0}"
+          >
+            設定
+          </button>
+        </div>
+
+        <div class="category-budget-track">
+          <div
+            class="category-budget-fill"
+            style="width:${ratio}%; background:${item.is_over_budget ? "#ef4444" : item.color};"
+          ></div>
+        </div>
+      `;
+
+      const btn = li.querySelector(".category-budget-btn");
+      btn.addEventListener("click", async () => {
+        const currentValue = Number(btn.dataset.budget || 0);
+        await openCategoryBudgetPrompt(item.name, currentValue);
+      });
+
+      ul.appendChild(li);
+    });
+  }
+
+  async function openCategoryBudgetPrompt(categoryName, currentValue = 0) {
+    const input = prompt(`${categoryName} の月予算を入力してください`, currentValue ? String(currentValue) : "");
+
+    if (input === null) return;
+
+    const trimmed = input.trim();
+    const amount = trimmed === "" ? 0 : Number(trimmed);
+
+    if (!Number.isInteger(amount) || amount < 0) {
+      alert("0以上の整数で入力してください。");
+      return;
+    }
+
+    const res = await fetch("/api/budget", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        month: currentMonth,
+        category: categoryName,
+        amount: amount
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert("カテゴリ予算の保存に失敗しました。");
+      return;
+    }
+
+    await loadBudget();
+  }
+
+  document.getElementById("setMonthBudgetBtn").addEventListener("click", async () => {
+    const currentText = document.getElementById("monthBudgetAmount").textContent;
+    const defaultValue = currentText === "未設定" ? "" : currentText.replace(/[^\d]/g, "");
+
+    const input = prompt(`${formatMonthLabel(currentMonth)} の月予算を入力`, defaultValue);
+
+    if (input === null) return;
+
+    const trimmed = input.trim();
+    const amount = trimmed === "" ? 0 : Number(trimmed);
+
+    if (!Number.isInteger(amount) || amount < 0) {
+      alert("0以上の整数で入力してください。");
+      return;
+    }
+
+    const res = await fetch("/api/budget", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        month: currentMonth,
+        amount: amount,
+        category: ""
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert("月予算の保存に失敗しました。");
+      return;
+    }
+
+    await loadBudget();
+  });
+
+  document.getElementById("prevMonthBtn").addEventListener("click", async () => {
+    currentMonth = shiftMonth(currentMonth, -1);
+    await loadBudget();
+  });
+
+  document.getElementById("nextMonthBtn").addEventListener("click", async () => {
+    currentMonth = shiftMonth(currentMonth, 1);
+    await loadBudget();
+  });
+
+  loadBudget();
+</script>
+{% endblock %}

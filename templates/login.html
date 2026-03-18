@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ログイン | 家計簿カレンダー</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: #f6f7f9;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      width: min(420px, 92vw);
+      background: white;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    }
+    h1 { margin-top: 0; font-size: 24px; }
+    .row { margin-bottom: 14px; }
+    .muted { color: #6b7280; font-size: 14px; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: #14b8c6;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .error {
+      color: #dc2626;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    a {
+      color: #0f766e;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ログイン</h1>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="row">
+        <div class="muted">ユーザー名</div>
+        <input type="text" name="username" required />
+      </div>
+
+      <div class="row">
+        <div class="muted">パスワード</div>
+        <input type="password" name="password" required />
+      </div>
+
+      <button type="submit">ログイン</button>
+    </form>
+
+    <p style="margin-top: 14px;">
+      アカウントがない場合は <a href="{{ url_for('register') }}">新規登録</a>
+    </p>
+  </div>
+</body>
+</html>
