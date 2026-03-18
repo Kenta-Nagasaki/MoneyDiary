@@ -1,15 +1,44 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import sqlite3
 import os
-from datetime import datetime, date
+import secrets
+import hmac
+from datetime import datetime, date, timedelta
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "kakeibo.db")
+SECRET_FILE_PATH = os.path.join(BASE_DIR, ".secret_key")
+
+
+def load_secret_key():
+    env_key = os.environ.get("SECRET_KEY", "").strip()
+    if env_key:
+        return env_key
+
+    if os.path.exists(SECRET_FILE_PATH):
+        with open(SECRET_FILE_PATH, "r", encoding="utf-8") as f:
+            saved = f.read().strip()
+            if saved:
+                return saved
+
+    generated = secrets.token_hex(32)
+    with open(SECRET_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(generated)
+    return generated
+
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
-DB_PATH = os.path.join(BASE_DIR, "kakeibo.db")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.secret_key = load_secret_key()
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "1") == "1"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 
 CATEGORY_DATA = {
     "expense": [
@@ -57,10 +86,17 @@ SUBCATEGORY_DATA = {
     "その他": ["仕送り", "お小遣い", "使途不明金", "立替金", "未分類", "現金の引出", "その他", "カードの引落", "電子マネーにチャージ"]
 }
 
+EXPENSE_CATEGORY_NAMES = {item["name"] for item in CATEGORY_DATA["expense"]}
+INCOME_CATEGORY_NAMES = {item["name"] for item in CATEGORY_DATA["income"]}
+
+LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_MAX_ATTEMPTS = 8
+
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -90,7 +126,8 @@ def init_db():
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
-    """)    
+    """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS budgets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,7 +141,14 @@ def init_db():
         )
     """)
 
-
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            attempted_at TEXT NOT NULL
+        )
+    """)
 
     cur.execute("PRAGMA table_info(transactions)")
     existing_columns = {row["name"] for row in cur.fetchall()}
@@ -126,6 +170,48 @@ def login_required(view_func):
             return redirect(url_for("login"))
         return view_func(*args, **kwargs)
     return wrapped
+
+
+def get_client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "").strip()
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:100]
+    return (request.remote_addr or "unknown")[:100]
+
+
+def cleanup_old_login_attempts(conn):
+    cutoff = datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)
+    conn.execute(
+        "DELETE FROM login_attempts WHERE attempted_at < ?",
+        (cutoff.isoformat(timespec="seconds"),)
+    )
+
+
+def count_recent_login_attempts(conn, username, ip_address):
+    cleanup_old_login_attempts(conn)
+    cutoff = datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)
+    row = conn.execute("""
+        SELECT COUNT(*) AS cnt
+        FROM login_attempts
+        WHERE username = ? AND ip_address = ? AND attempted_at >= ?
+    """, (username, ip_address, cutoff.isoformat(timespec="seconds"))).fetchone()
+    return int(row["cnt"] or 0)
+
+
+def record_failed_login(conn, username, ip_address):
+    conn.execute("""
+        INSERT INTO login_attempts (username, ip_address, attempted_at)
+        VALUES (?, ?, ?)
+    """, (username, ip_address, datetime.utcnow().isoformat(timespec="seconds")))
+    conn.commit()
+
+
+def clear_login_attempts(conn, username, ip_address):
+    conn.execute("""
+        DELETE FROM login_attempts
+        WHERE username = ? AND ip_address = ?
+    """, (username, ip_address))
+    conn.commit()
 
 
 def get_month_range(month_str):
@@ -156,6 +242,8 @@ def build_category_totals(rows, category_definitions):
             "total": existing_totals.get(item["name"], 0)
         })
     return categories
+
+
 def build_subcategory_totals(category_name, rows):
     existing_totals = {
         (row["subcategory"] or "その他"): int(row["total"] or 0)
@@ -173,6 +261,8 @@ def build_subcategory_totals(category_name, rows):
         })
 
     return subcategories
+
+
 def get_budget_amounts_for_month(conn, user_id, month):
     cur = conn.cursor()
     cur.execute("""
@@ -234,6 +324,66 @@ def get_expense_total_for_budget(conn, user_id, start_date, end_date, category="
     row = cur.fetchone()
     return int(row["total"] or 0)
 
+
+def validate_iso_date(value):
+    datetime.strptime(value, "%Y-%m-%d")
+    return value
+
+
+def validate_month_str(value):
+    datetime.strptime(value, "%Y-%m")
+    return value
+
+
+def get_csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def validate_csrf_or_abort(api_mode=False):
+    session_token = session.get("_csrf_token", "")
+    request_token = request.headers.get("X-CSRF-Token", "").strip()
+
+    if not request_token and request.form:
+        request_token = request.form.get("csrf_token", "").strip()
+
+    if not session_token or not request_token or not hmac.compare_digest(session_token, request_token):
+        if api_mode:
+            return jsonify({"ok": False, "error": "不正なリクエストです。"}), 400
+        return render_template("login.html", error="不正なリクエストです。"), 400
+
+    return None
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": get_csrf_token}
+
+
+@app.after_request
+def add_security_headers(response):
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data:; "
+        "font-src 'self' https://cdn.jsdelivr.net data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'self'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    response.headers["Content-Security-Policy"] = csp
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    return response
+
+
 @app.route("/")
 def index():
     if "user_id" in session:
@@ -246,11 +396,23 @@ def register():
     error = ""
 
     if request.method == "POST":
+        csrf_error = validate_csrf_or_abort(api_mode=False)
+        if csrf_error:
+            return csrf_error
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
         if not username or not password:
             error = "ユーザー名とパスワードを入力してください。"
+            return render_template("register.html", error=error)
+
+        if len(username) > 50:
+            error = "ユーザー名は50文字以内で入力してください。"
+            return render_template("register.html", error=error)
+
+        if len(password) < 8:
+            error = "パスワードは8文字以上で入力してください。"
             return render_template("register.html", error=error)
 
         conn = get_conn()
@@ -283,22 +445,39 @@ def login():
     error = ""
 
     if request.method == "POST":
+        csrf_error = validate_csrf_or_abort(api_mode=False)
+        if csrf_error:
+            return csrf_error
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        ip_address = get_client_ip()
 
         conn = get_conn()
+
+        if count_recent_login_attempts(conn, username, ip_address) >= LOGIN_MAX_ATTEMPTS:
+            conn.close()
+            error = "試行回数が多すぎます。しばらく待ってから再度お試しください。"
+            return render_template("login.html", error=error)
+
         cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cur.fetchone()
-        conn.close()
 
         if user is None or not check_password_hash(user["password_hash"], password):
+            record_failed_login(conn, username, ip_address)
+            conn.close()
             error = "ユーザー名またはパスワードが違います。"
             return render_template("login.html", error=error)
 
+        clear_login_attempts(conn, username, ip_address)
+        conn.close()
+
         session.clear()
+        session.permanent = True
         session["user_id"] = user["id"]
         session["username"] = user["username"]
+        session["_csrf_token"] = secrets.token_urlsafe(32)
 
         return redirect(url_for("calendar"))
 
@@ -355,8 +534,8 @@ def analysis():
 @app.route("/api/events")
 @login_required
 def api_events():
-    start = request.args.get("start")
-    end = request.args.get("end")
+    start = request.args.get("start", "").strip()
+    end = request.args.get("end", "").strip()
     if not start or not end:
         return jsonify([])
 
@@ -402,8 +581,13 @@ def api_events():
 @app.route("/api/day")
 @login_required
 def api_day():
-    tx_date = request.args.get("date")
+    tx_date = request.args.get("date", "").strip()
     if not tx_date:
+        return jsonify([])
+
+    try:
+        tx_date = validate_iso_date(tx_date[:10])
+    except Exception:
         return jsonify([])
 
     conn = get_conn()
@@ -413,7 +597,7 @@ def api_day():
         FROM transactions
         WHERE user_id = ? AND tx_date = ?
         ORDER BY id DESC
-    """, (session["user_id"], tx_date[:10]))
+    """, (session["user_id"], tx_date))
     rows = cur.fetchall()
     conn.close()
 
@@ -423,9 +607,10 @@ def api_day():
 @app.route("/api/graph_month")
 @login_required
 def api_graph_month():
-    month = request.args.get("month")
+    month = (request.args.get("month") or "").strip()
 
     try:
+        month = validate_month_str(month)
         start_date, end_date = get_month_range(month)
     except Exception:
         return jsonify({"ok": False, "error": "month is invalid"}), 400
@@ -469,7 +654,6 @@ def api_graph_month():
     income_rows = cur.fetchall()
 
     budget_map = get_budget_amounts_for_month(conn, session["user_id"], month)
-
     conn.close()
 
     expense_categories = build_category_totals(expense_rows, CATEGORY_DATA["expense"])
@@ -503,16 +687,18 @@ def api_graph_month():
         "expense_budget": expense_budget
     })
 
+
 @app.route("/api/graph_subcategory_month")
 @login_required
 def api_graph_subcategory_month():
-    month = request.args.get("month")
-    category = request.args.get("category", "").strip()
+    month = (request.args.get("month") or "").strip()
+    category = (request.args.get("category") or "").strip()
 
     if not category:
         return jsonify({"ok": False, "error": "category is required"}), 400
 
     try:
+        month = validate_month_str(month)
         start_date, end_date = get_month_range(month)
     except Exception:
         return jsonify({"ok": False, "error": "month is invalid"}), 400
@@ -561,13 +747,19 @@ def api_graph_subcategory_month():
         "chart_subcategories": chart_subcategories,
         **budget_info
     })
+
+
 @app.route("/api/budget", methods=["GET", "POST"])
 @login_required
 def api_budget():
     if request.method == "GET":
-        month = request.args.get("month", "").strip()
-        category = request.args.get("category", "").strip()
+        month = (request.args.get("month") or "").strip()
+        category = (request.args.get("category") or "").strip()
     else:
+        csrf_error = validate_csrf_or_abort(api_mode=True)
+        if csrf_error:
+            return csrf_error
+
         data = request.get_json(silent=True) or {}
         month = str(data.get("month", "")).strip()
         category = str(data.get("category", "")).strip()
@@ -575,13 +767,14 @@ def api_budget():
     if not month:
         return jsonify({"ok": False, "error": "month is required"}), 400
 
-    if category and category not in [item["name"] for item in CATEGORY_DATA["expense"]]:
-        return jsonify({"ok": False, "error": "category is invalid"}), 400
-
     try:
+        month = validate_month_str(month)
         start_date, end_date = get_month_range(month)
     except Exception:
         return jsonify({"ok": False, "error": "month is invalid"}), 400
+
+    if category and category not in EXPENSE_CATEGORY_NAMES:
+        return jsonify({"ok": False, "error": "category is invalid"}), 400
 
     conn = get_conn()
     cur = conn.cursor()
@@ -624,7 +817,6 @@ def api_budget():
     """, (session["user_id"], month, category, amount))
 
     conn.commit()
-
     spent = get_expense_total_for_budget(conn, session["user_id"], start_date, end_date, category)
     conn.close()
 
@@ -634,6 +826,8 @@ def api_budget():
         "category": category,
         **build_budget_info(spent, amount)
     })
+
+
 @app.route("/api/savings_history")
 @login_required
 def api_savings_history():
@@ -696,7 +890,6 @@ def api_savings_history():
         }
 
     selected_months = all_months[-months:]
-
     history_chronological = [cumulative_by_month[ym] for ym in selected_months]
 
     for i, item in enumerate(history_chronological):
@@ -711,13 +904,7 @@ def api_savings_history():
             item["diff_from_prev"] = item["net"] - history_chronological[i - 1]["net"]
 
     history = list(reversed(history_chronological))
-
-    chart = []
-    for ym in selected_months:
-        chart.append({
-            "month": ym,
-            "net": cumulative_by_month[ym]["net"]
-        })
+    chart = [{"month": ym, "net": cumulative_by_month[ym]["net"]} for ym in selected_months]
 
     return jsonify({
         "ok": True,
@@ -729,40 +916,48 @@ def api_savings_history():
 @app.route("/api/add", methods=["POST"])
 @login_required
 def api_add():
-    data = request.get_json(force=True)
+    csrf_error = validate_csrf_or_abort(api_mode=True)
+    if csrf_error:
+        return csrf_error
 
-    tx_date = (data.get("date") or "")[:10]
+    data = request.get_json(silent=True) or {}
+
+    tx_date = str(data.get("date", "")).strip()[:10]
     amount = data.get("amount")
-    category = data.get("category") or "その他"
-    subcategory = (data.get("subcategory") or "").strip()
-    memo = data.get("memo") or ""
-    tx_type = data.get("type") or "expense"
+    category = str(data.get("category", "")).strip()
+    subcategory = str(data.get("subcategory", "")).strip()
+    memo = str(data.get("memo", "")).strip()
+    tx_type = str(data.get("type", "expense")).strip()
 
-    if tx_type not in ["expense", "income"]:
+    if tx_type not in ("expense", "income"):
         return jsonify({"ok": False, "error": "type is invalid"}), 400
 
     try:
-        datetime.strptime(tx_date, "%Y-%m-%d")
+        tx_date = validate_iso_date(tx_date)
     except Exception:
         return jsonify({"ok": False, "error": "date is invalid"}), 400
 
     try:
         amount = int(amount)
         if amount <= 0:
-            raise ValueError()
+            raise ValueError
     except Exception:
-        return jsonify({"ok": False, "error": "amount must be positive integer"}), 400
+        return jsonify({"ok": False, "error": "amount is invalid"}), 400
+
+    if len(memo) > 200:
+        return jsonify({"ok": False, "error": "memo is too long"}), 400
 
     if tx_type == "expense":
+        if category not in EXPENSE_CATEGORY_NAMES:
+            return jsonify({"ok": False, "error": "category is invalid"}), 400
         valid_subcategories = SUBCATEGORY_DATA.get(category, [])
-        if valid_subcategories:
-            if not subcategory:
-                subcategory = valid_subcategories[0]
-            elif subcategory not in valid_subcategories:
-                return jsonify({"ok": False, "error": "subcategory is invalid"}), 400
-        else:
-            subcategory = ""
+        if subcategory and subcategory not in valid_subcategories:
+            return jsonify({"ok": False, "error": "subcategory is invalid"}), 400
+        if not subcategory and valid_subcategories:
+            subcategory = valid_subcategories[0]
     else:
+        if category not in INCOME_CATEGORY_NAMES:
+            return jsonify({"ok": False, "error": "category is invalid"}), 400
         subcategory = ""
 
     conn = get_conn()
@@ -770,7 +965,15 @@ def api_add():
     cur.execute("""
         INSERT INTO transactions (user_id, tx_date, amount, category, subcategory, memo, type)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (session["user_id"], tx_date, amount, category, subcategory, memo, tx_type))
+    """, (
+        session["user_id"],
+        tx_date,
+        amount,
+        category,
+        subcategory if tx_type == "expense" else None,
+        memo,
+        tx_type
+    ))
     conn.commit()
     conn.close()
 
@@ -780,13 +983,17 @@ def api_add():
 @app.route("/api/delete", methods=["POST"])
 @login_required
 def api_delete():
-    data = request.get_json(force=True)
+    csrf_error = validate_csrf_or_abort(api_mode=True)
+    if csrf_error:
+        return csrf_error
+
+    data = request.get_json(silent=True) or {}
     tx_id = data.get("id")
 
     try:
         tx_id = int(tx_id)
     except Exception:
-        return jsonify({"ok": False, "error": "id invalid"}), 400
+        return jsonify({"ok": False, "error": "id is invalid"}), 400
 
     conn = get_conn()
     cur = conn.cursor()
@@ -795,10 +1002,14 @@ def api_delete():
         WHERE id = ? AND user_id = ?
     """, (tx_id, session["user_id"]))
     conn.commit()
+    deleted = cur.rowcount
     conn.close()
+
+    if deleted == 0:
+        return jsonify({"ok": False, "error": "transaction not found"}), 404
 
     return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

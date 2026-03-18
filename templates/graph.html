@@ -4,389 +4,7 @@
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-  .chevron {
-  cursor: pointer;
-}
-  .graph-shell {
-    max-width: 860px;
-    margin: 12px auto;
-    padding: 0 12px;
-  }
-
-  .graph-card {
-    background: white;
-    border-radius: 22px;
-    padding: 18px 16px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.06);
-  }
-
-  .mode-switch-wrap {
-    background: linear-gradient(180deg, #35c6e8 0%, #20bfdc 100%);
-    border-radius: 30px;
-    padding: 10px;
-    margin-bottom: 18px;
-    box-shadow: 0 10px 24px rgba(53, 198, 232, .24);
-  }
-
-  .mode-switch {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    background: rgba(255, 255, 255, .9);
-    padding: 10px;
-    border-radius: 999px;
-  }
-
-  .mode-btn {
-    border: none;
-    background: transparent;
-    color: #9aa0a6;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 18px 0;
-    border-radius: 999px;
-    cursor: pointer;
-  }
-
-  .mode-btn.active {
-    background: #dfe7ea;
-    color: #22b8cf;
-  }
-
-  .month-row {
-    display: grid;
-    grid-template-columns: 44px 1fr 44px;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .month-nav-btn {
-    border: none;
-    background: transparent;
-    color: #22c55e;
-    font-size: 28px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
-
-  .month-label {
-    text-align: center;
-    font-size: 20px;
-    font-weight: 800;
-  }
-
- .donut-wrap {
-  width: min(100%, 560px);
-  margin: 0 auto 18px;
-  position: relative;
-}
-  .center-label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-  }
-
-  .center-label-inner {
-    text-align: center;
-  }
-
-  .center-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #111827;
-    margin-bottom: 6px;
-  }
-
-  .center-amount {
-    font-size: 20px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .summary-list,
-  .category-list,
-  .savings-history-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .summary-item,
-  .category-item {
-    display: grid;
-    align-items: center;
-    border-top: 1px solid #e5e7eb;
-    min-height: 68px;
-  }
-
- .summary-item {
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-}
-
-  .summary-label {
-    font-size: 20px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .summary-amount {
-    font-size: 24px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .chevron {
-    color: #c7c9cf;
-    font-size: 34px;
-    line-height: 1;
-  }
-
- .category-item {
-  grid-template-columns: auto 1fr auto;
-  gap: 12px;
-}
-
-  .category-icon-wrap {
-    width: 38px;
-    height: 38px;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .category-icon {
-    font-size: 22px;
-    line-height: 1;
-  }
-
-  .category-name {
-    font-size: 20px;
-    font-weight: 700;
-  }
-
-  .category-amount {
-    font-size: 22px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .empty-box {
-    border-top: 1px solid #e5e7eb;
-    padding: 28px 12px 8px;
-    text-align: center;
-    color: #6b7280;
-    font-size: 15px;
-  }
-
-  .savings-view {
-    display: none;
-  }
-
-  .savings-view.active {
-    display: block;
-  }
-
-  .normal-view.hidden {
-    display: none;
-  }
-
-  .savings-chart-wrap {
-  margin: 8px 0 16px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-}
-
-.savings-chart-canvas-wrap {
-  width: fit-content;
-  min-width: 0;
-  margin: 0 auto;
-}
-
-#savingsChart {
-  display: block;
-}
-  .year-header {
-    border-top: 1px solid #9ca3af;
-    padding: 8px 0 6px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-  }
-
- .savings-history-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, auto);
-  gap: 16px;
-  align-items: center;
-  border-top: 1px solid #e5e7eb;
-  padding: 18px 0;
-}
-
-  .savings-history-month {
-    font-size: 24px;
-    color: #374151;
-  }
-
-  .savings-history-right {
-  text-align: right;
-  min-width: 0;
-}
-  .savings-history-amount {
-  font-size: clamp(24px, 4vw, 30px);
-  font-weight: 500;
-  color: #374151;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-  .savings-history-diff {
-  margin-top: 4px;
-  font-size: clamp(14px, 2.4vw, 18px);
-  color: #c7c9cf;
-  white-space: nowrap;
-}
-
-  .positive-diff {
-    color: #9ca3af;
-  }
-
-  .negative-diff {
-    color: #f97316;
-  }
-
-  .savings-note {
-    margin-top: 6px;
-    text-align: center;
-    color: #6b7280;
-    font-size: 13px;
-  }
-    
-
-  @media (max-width: 640px) {
-    .graph-card {
-      padding: 16px 12px;
-      border-radius: 16px;
-    }
-
-    .mode-btn {
-      font-size: 16px;
-      padding: 16px 0;
-    }
-
-    .month-label {
-      font-size: 18px;
-    }
-
-    .summary-label,
-    .category-name {
-      font-size: 18px;
-    }
-
-    .summary-amount,
-    .category-amount {
-      font-size: 20px;
-    }
-
-    .donut-wrap {
-      width: min(100%, 420px);
-    }
-
-    .savings-history-month {
-      font-size: 20px;
-    }
-
-    .savings-history-amount {
-      font-size: 24px;
-    }
-
-    .savings-history-diff {
-      font-size: 16px;
-    }
-  }
-
-  .detail-view {
-    display: none;
-  }
-
-  .detail-view.active {
-    display: block;
-  }
-
-  .detail-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .detail-back-btn {
-    border: none;
-    background: transparent;
-    color: #111827;
-    font-size: 34px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0;
-    width: auto;
-  }
-
-  .detail-title {
-    font-size: 26px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .detail-total-row,
-  .detail-sub-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 12px;
-    align-items: center;
-    min-height: 68px;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  .detail-total-row {
-    grid-template-columns: 1fr auto auto;
-  }
-
-  .sub-dot {
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-  }
-
-  .detail-name {
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .detail-amount {
-    font-size: 22px;
-    font-weight: 800;
-    color: #111827;
-  }
-
-  .detail-empty-box {
-    border-top: 1px solid #e5e7eb;
-    padding: 28px 12px 8px;
-    text-align: center;
-    color: #6b7280;
-    font-size: 15px;
-    display: none;
-  }
-  
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='graph.css') }}">
 {% endblock %}
 
 {% block body %}
@@ -400,15 +18,13 @@
       </div>
     </div>
 
-        <div class="normal-view" id="normalView">
+    <div class="normal-view" id="normalView">
       <div id="categoryOverviewView">
-       <div class="month-row">
-  <button type="button" class="month-nav-btn" id="prevMonthBtn">‹</button>
-  <div class="month-label" id="monthLabel">-</div>
-  <button type="button" class="month-nav-btn" id="nextMonthBtn">›</button>
-</div>
-
-
+        <div class="month-row">
+          <button type="button" class="month-nav-btn" id="prevMonthBtn">‹</button>
+          <div class="month-label" id="monthLabel">-</div>
+          <button type="button" class="month-nav-btn" id="nextMonthBtn">›</button>
+        </div>
 
         <div class="donut-wrap">
           <canvas id="donutChart"></canvas>
@@ -430,11 +46,12 @@
           <button type="button" class="detail-back-btn" id="detailBackBtn">‹</button>
           <div class="detail-title" id="detailTitle">-</div>
         </div>
-<div class="month-row">
-  <button type="button" class="month-nav-btn" id="detailPrevMonthBtn">‹</button>
-  <div class="month-label" id="detailMonthLabel">-</div>
-  <button type="button" class="month-nav-btn" id="detailNextMonthBtn">›</button>
-</div>
+
+        <div class="month-row">
+          <button type="button" class="month-nav-btn" id="detailPrevMonthBtn">‹</button>
+          <div class="month-label" id="detailMonthLabel">-</div>
+          <button type="button" class="month-nav-btn" id="detailNextMonthBtn">›</button>
+        </div>
 
         <div class="donut-wrap">
           <canvas id="detailDonutChart"></canvas>
@@ -446,19 +63,20 @@
           </div>
         </div>
 
-       <div class="detail-total-row">
-  <div class="summary-label" id="detailTotalLabel">-</div>
-  <div class="summary-amount" id="detailTotalAmount">¥0</div>
-</div>
+        <div class="detail-total-row">
+          <div class="summary-label" id="detailTotalLabel">-</div>
+          <div class="summary-amount" id="detailTotalAmount">¥0</div>
+        </div>
 
         <ul class="category-list" id="detailSubcategoryList"></ul>
         <div class="detail-empty-box" id="detailEmptyBox">この月の小分類データはまだありません。</div>
       </div>
     </div>
+
     <div class="savings-view" id="savingsView">
       <div class="savings-chart-wrap">
         <div class="savings-chart-canvas-wrap">
-         <canvas id="savingsChart" height="380"></canvas>
+          <canvas id="savingsChart" height="380"></canvas>
         </div>
       </div>
 
@@ -475,93 +93,104 @@
   const INITIAL_MONTH = "{{ current_month }}";
   let currentMonth = INITIAL_MONTH;
   let currentMode = "expense";
-    let donutChart = null;
+  let donutChart = null;
   let detailDonutChart = null;
   let savingsChart = null;
   let currentData = null;
   let currentDetailData = null;
   let currentDetailCategory = null;
   let savingsHistoryData = null;
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function hexToHsl(hex) {
-  const { r, g, b } = hexToRgb(hex);
-  const rn = r / 255;
-  const gn = g / 255;
-  const bn = b / 255;
+    const { r, g, b } = hexToRgb(hex);
+    const rn = r / 255;
+    const gn = g / 255;
+    const bn = b / 255;
 
-  const max = Math.max(rn, gn, bn);
-  const min = Math.min(rn, gn, bn);
-  let h, s;
-  const l = (max + min) / 2;
+    const max = Math.max(rn, gn, bn);
+    const min = Math.min(rn, gn, bn);
+    let h, s;
+    const l = (max + min) / 2;
 
-  if (max === min) {
-    h = s = 0;
-  } else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
-    switch (max) {
-      case rn:
-        h = (gn - bn) / d + (gn < bn ? 6 : 0);
-        break;
-      case gn:
-        h = (bn - rn) / d + 2;
-        break;
-      default:
-        h = (rn - gn) / d + 4;
+      switch (max) {
+        case rn:
+          h = (gn - bn) / d + (gn < bn ? 6 : 0);
+          break;
+        case gn:
+          h = (bn - rn) / d + 2;
+          break;
+        default:
+          h = (rn - gn) / d + 4;
+      }
+      h /= 6;
     }
-    h /= 6;
+
+    return { h, s, l };
   }
 
-  return { h, s, l };
-}
+  function hslToHex(h, s, l) {
+    function hue2rgb(p, q, t) {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    }
 
-function hslToHex(h, s, l) {
-  function hue2rgb(p, q, t) {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1/6) return p + (q - p) * 6 * t;
-    if (t < 1/2) return q;
-    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-    return p;
+    let r, g, b;
+
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return "#" + [r, g, b]
+      .map(v => Math.round(v * 255).toString(16).padStart(2, "0"))
+      .join("");
   }
 
-  let r, g, b;
+  function buildSubcategoryPalette(baseColor, count) {
+    const { h, s, l } = hexToHsl(baseColor);
+    const colors = [];
 
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1/3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1/3);
+    for (let i = 0; i < count; i++) {
+      const nextL = Math.max(0.34, Math.min(0.72, l - 0.12 + i * 0.06));
+      colors.push(hslToHex(h, s, nextL));
+    }
+
+    return colors;
   }
 
-  return "#" + [r, g, b]
-    .map(v => Math.round(v * 255).toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function buildSubcategoryPalette(baseColor, count) {
-  const { h, s, l } = hexToHsl(baseColor);
-  const colors = [];
-
-  for (let i = 0; i < count; i++) {
-    const nextL = Math.max(0.34, Math.min(0.72, l - 0.12 + i * 0.06));
-    colors.push(hslToHex(h, s, nextL));
+  function getExpenseCategoryMeta(categoryName) {
+    const categories = {{ categories["expense"] | tojson }};
+    return categories.find(item => item.name === categoryName) || {
+      name: categoryName,
+      icon: "•",
+      color: "#94A3B8"
+    };
   }
 
-  return colors;
-}
-
-function getExpenseCategoryMeta(categoryName) {
-  const categories = {{ categories["expense"] | tojson }};
-  return categories.find(item => item.name === categoryName) || {
-    name: categoryName,
-    icon: "•",
-    color: "#94A3B8"
-  };
-}
   function formatYen(value) {
     const num = Number(value || 0);
     const sign = num < 0 ? "-" : "";
@@ -573,9 +202,6 @@ function getExpenseCategoryMeta(categoryName) {
     const sign = num < 0 ? "-" : "";
     return sign + Math.abs(num).toLocaleString() + "円";
   }
-   
-
-  
 
   function formatMonthLabel(monthStr) {
     const [year, month] = monthStr.split("-");
@@ -610,15 +236,15 @@ function getExpenseCategoryMeta(categoryName) {
   }
 
   function monthShortLabel(monthStr) {
-  const [year, month] = monthStr.split("-");
-  const m = Number(month);
+    const [year, month] = monthStr.split("-");
+    const m = Number(month);
 
-  if (m === 1) {
-    return `${year}年01月`;
+    if (m === 1) {
+      return `${year}年01月`;
+    }
+
+    return `${String(m).padStart(2, "0")}月`;
   }
-
-  return `${String(m).padStart(2, "0")}月`;
-}
 
   function setActiveModeButton() {
     document.querySelectorAll(".mode-btn").forEach(btn => {
@@ -626,14 +252,15 @@ function getExpenseCategoryMeta(categoryName) {
     });
   }
 
- function toggleViews() {
-  document.getElementById("normalView").classList.toggle("hidden", currentMode === "savings");
-  document.getElementById("savingsView").classList.toggle("active", currentMode === "savings");
+  function toggleViews() {
+    document.getElementById("normalView").classList.toggle("hidden", currentMode === "savings");
+    document.getElementById("savingsView").classList.toggle("active", currentMode === "savings");
 
-  const isDetail = currentMode === "expense" && !!currentDetailCategory;
-  document.getElementById("categoryOverviewView").style.display = isDetail ? "none" : "block";
-  document.getElementById("detailView").classList.toggle("active", isDetail);
-}
+    const isDetail = currentMode === "expense" && !!currentDetailCategory;
+    document.getElementById("categoryOverviewView").style.display = isDetail ? "none" : "block";
+    document.getElementById("detailView").classList.toggle("active", isDetail);
+  }
+
   function getViewModel(data, mode) {
     if (mode === "income") {
       return {
@@ -659,233 +286,238 @@ function getExpenseCategoryMeta(categoryName) {
       emptyMessage: "この月の支出データはまだありません。"
     };
   }
-function renderSummary(viewModel) {
-  const list = document.getElementById("summaryList");
-  list.innerHTML = "";
 
-  viewModel.summary.forEach(item => {
-    const li = document.createElement("li");
-    li.className = "summary-item";
+  function renderSummary(viewModel) {
+    const list = document.getElementById("summaryList");
+    list.innerHTML = "";
 
-    if (currentMode === "expense") {
-      li.style.gridTemplateColumns = "1fr auto auto";
-      li.innerHTML = `
-        <div class="summary-label">${item.label}</div>
-        <div class="summary-amount">${formatYen(item.amount)}</div>
-        <div class="chevron" style="visibility:hidden;">›</div>
-      `;
-    } else {
-      li.style.gridTemplateColumns = "1fr auto";
-      li.innerHTML = `
-        <div class="summary-label">${item.label}</div>
-        <div class="summary-amount">${formatYen(item.amount)}</div>
-      `;
-    }
+    viewModel.summary.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "summary-item";
 
-    list.appendChild(li);
-  });
-
-  document.getElementById("centerTitle").textContent = viewModel.centerTitle;
-  document.getElementById("centerAmount").textContent = formatYen(viewModel.centerAmount);
-}
-
- function renderCategoryList(viewModel) {
-  const list = document.getElementById("categoryList");
-  const emptyBox = document.getElementById("emptyBox");
-  list.innerHTML = "";
-
-  const categories = viewModel.categories || [];
-  const hasPositive = categories.some(item => Number(item.total) > 0);
-
-  emptyBox.textContent = viewModel.emptyMessage;
-  emptyBox.style.display = hasPositive ? "none" : "block";
-
-  categories.forEach(item => {
-    const li = document.createElement("li");
-    const clickable = currentMode === "expense";
-    li.className = "category-item";
-
-    li.innerHTML = `
-      <div class="category-icon-wrap" style="background:${withAlpha(item.color, 0.16)};">
-        <div class="category-icon">${item.icon}</div>
-      </div>
-      <div class="category-name" style="color:${item.color};">${item.name}</div>
-      <div class="category-amount" style="display:flex; align-items:center; justify-content:flex-end; gap:12px;">
-        <span>${formatYen(item.total)}</span>
-        ${clickable ? '<span class="chevron">›</span>' : ''}
-      </div>
-    `;
-
-    if (clickable) {
-      const chevron = li.querySelector(".chevron");
-      chevron.style.cursor = "pointer";
-
-      chevron.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openDetailView(item.name);
-      });
-    }
-
-    list.appendChild(li);
-  });
-}
- function formatOutsideLabel(label) {
-  if (label === "水道・光熱費") return "光熱費";
-  return label;
-} 
-
-const outsideLabelPlugin = {
-  id: "outsideLabelPlugin",
-  afterDatasetsDraw(chart, args, pluginOptions) {
-    const { ctx, chartArea } = chart;
-    const meta = chart.getDatasetMeta(0);
-    const dataset = chart.data.datasets[0];
-    const labels = chart.data.labels || [];
-    const values = dataset.data || [];
-
-    if (!meta || !meta.data || !meta.data.length) return;
-    if (labels.length === 0) return;
-    if (pluginOptions.isEmpty) return;
-
-    const total = values.reduce((sum, v) => sum + Number(v || 0), 0);
-    if (total <= 0) return;
-
-    const minRatio = 0.03;
-
-    ctx.save();
-    ctx.font = "700 18px system-ui, -apple-system, 'Segoe UI', sans-serif";
-    ctx.textBaseline = "middle";
-
-    const visibleItems = labels
-      .map((label, index) => ({
-        label,
-        color: dataset.backgroundColor[index],
-        value: Number(values[index] || 0),
-        arc: meta.data[index]
-      }))
-      .filter(item => item.value > 0 && item.arc);
-
-    // 1カテゴリだけのときは、下中央に表示する
-if (visibleItems.length === 1) {
-  const item = visibleItems[0];
-  const arc = item.arc;
-
-  const x = arc.x;
-  const y = arc.y + arc.outerRadius + 20;
-
-  ctx.fillStyle = item.color;
-  ctx.textAlign = "center";
-ctx.fillText(formatOutsideLabel(item.label), x, y);
-  ctx.restore();
-  return;
-}
-
-    const leftItems = [];
-    const rightItems = [];
-    const topItems = [];
-
-    meta.data.forEach((arc, index) => {
-      const label = labels[index];
-      const color = dataset.backgroundColor[index];
-      const value = Number(values[index] || 0);
-
-      if (value <= 0) return;
-
-      const ratio = value / total;
-      if (ratio < minRatio) return;
-
-      const angle = (arc.startAngle + arc.endAngle) / 2;
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
-
-      if (sin < -0.72) {
-  topItems.push({
-    label,
-    color,
-    x: arc.x + cos * (arc.outerRadius + 10),
-    y: arc.y + sin * (arc.outerRadius + 10)
-  });
-  return;
-}
-
-const baseY = arc.y + sin * (arc.outerRadius + 12);
-      const item = {
-        label,
-        color,
-        y: baseY,
-        arc,
-        cos,
-        sin
-      };
-
-      if (cos >= 0) {
-        rightItems.push(item);
+      if (currentMode === "expense") {
+        li.style.gridTemplateColumns = "1fr auto auto";
+        li.innerHTML = `
+          <div class="summary-label">${escapeHtml(item.label)}</div>
+          <div class="summary-amount">${formatYen(item.amount)}</div>
+          <div class="chevron" style="visibility:hidden;">›</div>
+        `;
       } else {
-        leftItems.push(item);
+        li.style.gridTemplateColumns = "1fr auto";
+        li.innerHTML = `
+          <div class="summary-label">${escapeHtml(item.label)}</div>
+          <div class="summary-amount">${formatYen(item.amount)}</div>
+        `;
       }
+
+      list.appendChild(li);
     });
 
-    function distribute(items, minY, maxY, gap) {
-      if (!items.length) return;
+    document.getElementById("centerTitle").textContent = viewModel.centerTitle;
+    document.getElementById("centerAmount").textContent = formatYen(viewModel.centerAmount);
+  }
 
-      items.sort((a, b) => a.y - b.y);
+  function renderCategoryList(viewModel) {
+    const list = document.getElementById("categoryList");
+    const emptyBox = document.getElementById("emptyBox");
+    list.innerHTML = "";
 
-      items[0].y = Math.max(items[0].y, minY);
+    const categories = viewModel.categories || [];
+    const hasPositive = categories.some(item => Number(item.total) > 0);
 
-      for (let i = 1; i < items.length; i++) {
-        items[i].y = Math.max(items[i].y, items[i - 1].y + gap);
+    emptyBox.textContent = viewModel.emptyMessage;
+    emptyBox.style.display = hasPositive ? "none" : "block";
+
+    categories.forEach(item => {
+      const li = document.createElement("li");
+      const clickable = currentMode === "expense";
+      li.className = "category-item";
+
+      li.innerHTML = `
+        <div class="category-icon-wrap" style="background:${withAlpha(item.color, 0.16)};">
+          <div class="category-icon">${escapeHtml(item.icon)}</div>
+        </div>
+        <div class="category-name" style="color:${escapeHtml(item.color)};">${escapeHtml(item.name)}</div>
+        <div class="category-amount" style="display:flex; align-items:center; justify-content:flex-end; gap:12px;">
+          <span>${formatYen(item.total)}</span>
+          ${clickable ? '<span class="chevron">›</span>' : ''}
+        </div>
+      `;
+
+      if (clickable) {
+        const chevron = li.querySelector(".chevron");
+        chevron.style.cursor = "pointer";
+
+        chevron.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openDetailView(item.name);
+        });
       }
 
-      if (items[items.length - 1].y > maxY) {
-        items[items.length - 1].y = maxY;
+      list.appendChild(li);
+    });
+  }
 
-        for (let i = items.length - 2; i >= 0; i--) {
-          items[i].y = Math.min(items[i].y, items[i + 1].y - gap);
+  function formatOutsideLabel(label) {
+    if (label === "水道・光熱費") return "光熱費";
+    return label;
+  }
+
+  const outsideLabelPlugin = {
+    id: "outsideLabelPlugin",
+    afterDatasetsDraw(chart, args, pluginOptions) {
+      const { ctx, chartArea } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const dataset = chart.data.datasets[0];
+      const labels = chart.data.labels || [];
+      const values = dataset.data || [];
+
+      if (!meta || !meta.data || !meta.data.length) return;
+      if (labels.length === 0) return;
+      if (pluginOptions.isEmpty) return;
+
+      const total = values.reduce((sum, v) => sum + Number(v || 0), 0);
+      if (total <= 0) return;
+
+      const minRatio = 0.03;
+
+      ctx.save();
+      ctx.font = "700 18px system-ui, -apple-system, 'Segoe UI', sans-serif";
+      ctx.textBaseline = "middle";
+
+      const visibleItems = labels
+        .map((label, index) => ({
+          label,
+          color: dataset.backgroundColor[index],
+          value: Number(values[index] || 0),
+          arc: meta.data[index]
+        }))
+        .filter(item => item.value > 0 && item.arc);
+
+      if (visibleItems.length === 1) {
+        const item = visibleItems[0];
+        const arc = item.arc;
+
+        const x = arc.x;
+        const y = arc.y + arc.outerRadius + 20;
+
+        ctx.fillStyle = item.color;
+        ctx.textAlign = "center";
+        ctx.fillText(formatOutsideLabel(item.label), x, y);
+        ctx.restore();
+        return;
+      }
+
+      const leftItems = [];
+      const rightItems = [];
+      const topItems = [];
+
+      meta.data.forEach((arc, index) => {
+        const label = labels[index];
+        const color = dataset.backgroundColor[index];
+        const value = Number(values[index] || 0);
+
+        if (value <= 0) return;
+
+        const ratio = value / total;
+        if (ratio < minRatio) return;
+
+        const angle = (arc.startAngle + arc.endAngle) / 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        if (sin < -0.72) {
+          topItems.push({
+            label,
+            color,
+            x: arc.x + cos * (arc.outerRadius + 10),
+            y: arc.y + sin * (arc.outerRadius + 10)
+          });
+          return;
         }
-      }
 
-      if (items[0].y < minY) {
-        items[0].y = minY;
+        const baseY = arc.y + sin * (arc.outerRadius + 12);
+        const item = {
+          label,
+          color,
+          y: baseY,
+          arc,
+          cos,
+          sin
+        };
+
+        if (cos >= 0) {
+          rightItems.push(item);
+        } else {
+          leftItems.push(item);
+        }
+      });
+
+      function distribute(items, minY, maxY, gap) {
+        if (!items.length) return;
+
+        items.sort((a, b) => a.y - b.y);
+
+        items[0].y = Math.max(items[0].y, minY);
 
         for (let i = 1; i < items.length; i++) {
           items[i].y = Math.max(items[i].y, items[i - 1].y + gap);
         }
+
+        if (items[items.length - 1].y > maxY) {
+          items[items.length - 1].y = maxY;
+
+          for (let i = items.length - 2; i >= 0; i--) {
+            items[i].y = Math.min(items[i].y, items[i + 1].y - gap);
+          }
+        }
+
+        if (items[0].y < minY) {
+          items[0].y = minY;
+
+          for (let i = 1; i < items.length; i++) {
+            items[i].y = Math.max(items[i].y, items[i - 1].y + gap);
+          }
+        }
       }
+
+      const minY = chartArea.top + 24;
+      const maxY = chartArea.bottom - 24;
+      const gap = 24;
+
+      distribute(leftItems, minY, maxY, gap);
+      distribute(rightItems, minY, maxY, gap);
+
+      leftItems.forEach(item => {
+        const labelGap = 14;
+        const x = item.arc.x + item.cos * (item.arc.outerRadius + labelGap);
+
+        ctx.fillStyle = item.color;
+        ctx.textAlign = "right";
+        ctx.fillText(formatOutsideLabel(item.label), x, item.y);
+      });
+
+      rightItems.forEach(item => {
+        const labelGap = 14;
+        const x = item.arc.x + item.cos * (item.arc.outerRadius + labelGap);
+
+        ctx.fillStyle = item.color;
+        ctx.textAlign = "left";
+        ctx.fillText(formatOutsideLabel(item.label), x, item.y);
+      });
+
+      topItems
+        .sort((a, b) => a.x - b.x)
+        .forEach((item) => {
+          ctx.fillStyle = item.color;
+          ctx.textAlign = "center";
+          ctx.fillText(formatOutsideLabel(item.label), item.x, item.y - 8);
+        });
+
+      ctx.restore();
     }
+  };
 
-    const minY = chartArea.top + 24;
-    const maxY = chartArea.bottom - 24;
-    const gap = 24;
-
-    distribute(leftItems, minY, maxY, gap);
-    distribute(rightItems, minY, maxY, gap);
-leftItems.forEach(item => {
-  const labelGap = 14;
-  const x = item.arc.x + item.cos * (item.arc.outerRadius + labelGap);
-
-  ctx.fillStyle = item.color;
-  ctx.textAlign = "right";
-  ctx.fillText(formatOutsideLabel(item.label), x, item.y);
-});
-rightItems.forEach(item => {
-  const labelGap = 14;
-  const x = item.arc.x + item.cos * (item.arc.outerRadius + labelGap);
-
-  ctx.fillStyle = item.color;
-  ctx.textAlign = "left";
-  ctx.fillText(formatOutsideLabel(item.label), x, item.y);
-});
-    topItems
-  .sort((a, b) => a.x - b.x)
-  .forEach((item) => {
-    ctx.fillStyle = item.color;
-    ctx.textAlign = "center";
-    ctx.fillText(formatOutsideLabel(item.label), item.x, item.y - 8);
-  });
-
-    ctx.restore();
-  }
-};
   function renderDonutChart(viewModel) {
     const ctx = document.getElementById("donutChart").getContext("2d");
     const items = viewModel.chartCategories || [];
@@ -910,20 +542,20 @@ rightItems.forEach(item => {
           hoverOffset: 4
         }]
       },
-    options: {
-  responsive: true,
-  maintainAspectRatio: true,
-  radius: "82%",
- layout: {
-  padding: {
-    top: 18,
-    right: 20,
-    bottom: 18,
-    left: 20
-  }
-},
-  cutout: "58%",
-  plugins: {
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        radius: "82%",
+        layout: {
+          padding: {
+            top: 18,
+            right: 20,
+            bottom: 18,
+            left: 20
+          }
+        },
+        cutout: "58%",
+        plugins: {
           legend: {
             display: false
           },
@@ -939,7 +571,6 @@ rightItems.forEach(item => {
               }
             }
           },
-          
           outsideLabelPlugin: {
             isEmpty: isEmpty
           }
@@ -950,29 +581,30 @@ rightItems.forEach(item => {
   }
 
   async function loadMonthData() {
-  const res = await fetch(`/api/graph_month?month=${encodeURIComponent(currentMonth)}`);
+    const res = await fetch(`/api/graph_month?month=${encodeURIComponent(currentMonth)}`);
 
-  if (res.redirected) {
-    window.location.href = res.url;
-    return;
-  }
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (!res.ok || !data.ok) {
-    alert("グラフの取得に失敗しました。");
-    return;
-  }
+    if (!res.ok || !data.ok) {
+      alert("グラフの取得に失敗しました。");
+      return;
+    }
 
-  currentData = data;
+    currentData = data;
 
-  if (currentDetailCategory) {
-    const ok = await loadDetailData(currentDetailCategory);
-    if (ok) {
-      renderDetailView();
+    if (currentDetailCategory) {
+      const ok = await loadDetailData(currentDetailCategory);
+      if (ok) {
+        renderDetailView();
+      }
     }
   }
-}
+
   async function loadSavingsHistory() {
     const res = await fetch(`/api/savings_history?months=12`);
 
@@ -990,425 +622,428 @@ rightItems.forEach(item => {
 
     savingsHistoryData = data;
   }
-async function loadDetailData(categoryName) {
-  const res = await fetch(`/api/graph_subcategory_month?month=${encodeURIComponent(currentMonth)}&category=${encodeURIComponent(categoryName)}`);
 
-  if (res.redirected) {
-    window.location.href = res.url;
-    return false;
-  }
+  async function loadDetailData(categoryName) {
+    const res = await fetch(`/api/graph_subcategory_month?month=${encodeURIComponent(currentMonth)}&category=${encodeURIComponent(categoryName)}`);
 
-  const data = await res.json();
-
-  if (!res.ok || !data.ok) {
-    alert("小分類データの取得に失敗しました。");
-    return false;
-  }
-
-  currentDetailData = data;
-  return true;
-}
-
-async function openDetailView(categoryName) {
-  currentDetailCategory = categoryName;
-  const ok = await loadDetailData(categoryName);
-  if (!ok) {
-    currentDetailCategory = null;
-    return;
-  }
-  renderDetailView();
-  toggleViews();
-}
-
-function closeDetailView() {
-  currentDetailCategory = null;
-  currentDetailData = null;
-  toggleViews();
-}
-
-function renderDetailDonutChart() {
-  const ctx = document.getElementById("detailDonutChart").getContext("2d");
-  const meta = getExpenseCategoryMeta(currentDetailCategory);
-  const items = (currentDetailData && currentDetailData.chart_subcategories) ? currentDetailData.chart_subcategories : [];
-  const palette = buildSubcategoryPalette(meta.color, Math.max(items.length, 1));
-
-  const labels = items.map(item => item.name);
-  const values = items.map(item => item.total);
-  const isEmpty = values.length === 0;
-
-  if (detailDonutChart) {
-    detailDonutChart.destroy();
-  }
-
-  detailDonutChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [{
-        data: isEmpty ? [1] : values,
-        backgroundColor: isEmpty ? ["#e5e7eb"] : palette.slice(0, values.length),
-        borderWidth: 0,
-        hoverOffset: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      radius: "82%",
-      layout: {
-        padding: {
-          top: 18,
-          right: 48,
-          bottom: 18,
-          left: 48
-        }
-      },
-      cutout: "58%",
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              if (isEmpty) {
-                return "データなし";
-              }
-              const label = context.label || "";
-              const value = context.raw || 0;
-              return `${label}: ${formatYen(value)}`;
-            }
-          }
-        },
-        outsideLabelPlugin: {
-          isEmpty: isEmpty
-        }
-      }
-    },
-    plugins: [outsideLabelPlugin]
-  });
-}
-
-function renderDetailList() {
-  const list = document.getElementById("detailSubcategoryList");
-  const emptyBox = document.getElementById("detailEmptyBox");
-  list.innerHTML = "";
-
-  const items = (currentDetailData && currentDetailData.subcategories) ? currentDetailData.subcategories : [];
-  const hasPositive = items.some(item => Number(item.total) > 0);
-  const meta = getExpenseCategoryMeta(currentDetailCategory);
-  const palette = buildSubcategoryPalette(meta.color, Math.max(items.length, 1));
-
-  emptyBox.style.display = hasPositive ? "none" : "block";
-
-  items.forEach((item, index) => {
-    const li = document.createElement("li");
-    li.className = "detail-sub-item";
-    li.innerHTML = `
-      <div class="sub-dot" style="background:${palette[index]};"></div>
-      <div class="detail-name">${item.name}</div>
-      <div class="detail-amount">${formatYen(item.total)}</div>
-    `;
-    list.appendChild(li);
-  });
-}
-function renderDetailView() {
-  if (!currentDetailCategory || !currentDetailData) {
-    return;
-  }
-
-  document.getElementById("detailTitle").textContent = `${currentDetailCategory}の内訳`;
-  document.getElementById("detailMonthLabel").textContent = formatMonthLabel(currentMonth);
-  document.getElementById("detailCenterAmount").textContent = formatYen(currentDetailData.total);
-  document.getElementById("detailTotalLabel").textContent = `${currentDetailCategory}全体`;
-  document.getElementById("detailTotalAmount").textContent = formatYen(currentDetailData.total);
-
-  renderDetailDonutChart();
-  renderDetailList();
-}
-function renderSavingsChart() {
-  const emptyBox = document.getElementById("savingsEmptyBox");
-  const container = document.getElementById("savingsHistoryContainer");
-  const canvas = document.getElementById("savingsChart");
-  const canvasWrap = canvas.parentElement;
-  const ctx = canvas.getContext("2d");
-
-  const chartItems = (savingsHistoryData && savingsHistoryData.chart) ? savingsHistoryData.chart : [];
-  const hasData = chartItems.length > 0;
-
-  emptyBox.style.display = hasData ? "none" : "block";
-  container.style.display = hasData ? "block" : "none";
-
-  if (savingsChart) {
-    savingsChart.destroy();
-  }
-
-  if (!hasData) {
-    return;
-  }
-
-  const values = chartItems.map(item => Number(item.net || 0));
-  const minValue = Math.min(...values, 0);
-  const maxValue = Math.max(...values, 0);
-  const range = Math.max(maxValue - minValue, 1);
-  const padding = Math.max(range * 0.12, 20000);
-
-  const yMin = minValue - padding;
-  const yMax = maxValue + padding;
-
-  const count = chartItems.length;
-  const barUnitWidth = 128;
-  const chartWidth = Math.max(count * barUnitWidth, 320);
-
-  canvas.width = chartWidth;
-  canvasWrap.style.width = `${chartWidth}px`;
-
-  savingsChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: chartItems.map(item => monthShortLabel(item.month)),
-      datasets: [{
-        data: values,
-        backgroundColor: "#28bfd7",
-        borderRadius: 0,
-        maxBarThickness: 76,
-        categoryPercentage: 0.72,
-        barPercentage: 0.9
-      }]
-    },
-    options: {
-      responsive: false,
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          top: 36,
-          right: 12,
-          bottom: 0,
-          left: 12
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false,
-            drawBorder: false
-          },
-          border: {
-            display: false
-          },
-          ticks: {
-            color: "#9ca3af",
-            font: {
-              size: 16
-            }
-          }
-        },
-        y: {
-          display: false,
-          min: yMin,
-          max: yMax,
-          grid: {
-            display: false,
-            drawBorder: false
-          },
-          border: {
-            display: false
-          },
-          ticks: {
-            display: false
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return formatYenNoSignSuffix(context.raw);
-            }
-          }
-        }
-      }
-    },
-    plugins: [
-      {
-        id: "zeroLinePlugin",
-        afterDraw(chart) {
-          const { ctx, chartArea, scales } = chart;
-          const yScale = scales.y;
-          if (!yScale) return;
-
-          const zeroY = yScale.getPixelForValue(0);
-
-          if (zeroY < chartArea.top || zeroY > chartArea.bottom) return;
-
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(chartArea.left, zeroY);
-          ctx.lineTo(chartArea.right, zeroY);
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = "#cfd4da";
-          ctx.stroke();
-          ctx.restore();
-        }
-      },
-      {
-        id: "barValueLabel",
-        afterDatasetsDraw(chart) {
-          const { ctx } = chart;
-          const meta = chart.getDatasetMeta(0);
-          const values = chart.data.datasets[0].data;
-
-          ctx.save();
-          ctx.fillStyle = "#58c9dd";
-          ctx.font = "500 16px system-ui, -apple-system, 'Segoe UI', sans-serif";
-          ctx.textAlign = "center";
-
-          meta.data.forEach((bar, index) => {
-            const value = Number(values[index] || 0);
-
-            if (value >= 0) {
-              ctx.textBaseline = "bottom";
-              ctx.fillText(formatYenNoSignSuffix(value), bar.x, bar.y - 10);
-            } else {
-              ctx.textBaseline = "top";
-              ctx.fillText(formatYenNoSignSuffix(value), bar.x, bar.y + 10);
-            }
-          });
-
-          ctx.restore();
-        }
-      }
-    ]
-  });
-}
-  function renderSavingsHistoryList() {
-    const container = document.getElementById("savingsHistoryContainer");
-    const history = (savingsHistoryData && savingsHistoryData.history) ? savingsHistoryData.history : [];
-
-    if (!history.length) {
-      container.innerHTML = "";
-      return;
+    if (res.redirected) {
+      window.location.href = res.url;
+      return false;
     }
 
-    let html = "";
-    let currentYear = null;
+    const data = await res.json();
 
-    history.forEach(item => {
-      const year = item.month.slice(0, 4);
-      const month = item.month.slice(5, 7);
+    if (!res.ok || !data.ok) {
+      alert("小分類データの取得に失敗しました。");
+      return false;
+    }
 
-      if (year !== currentYear) {
-        currentYear = year;
-        html += `<div class="year-header">${year}年</div>`;
-      }
-
-      let diffText = "前月比: --";
-      let diffClass = "";
-
-      if (item.diff_from_prev !== null) {
-        const sign = item.diff_from_prev > 0 ? "+" : "";
-        diffText = `前月比: ${sign}${Math.abs(item.diff_from_prev).toLocaleString()}`;
-        diffClass = item.diff_from_prev < 0 ? "negative-diff" : "positive-diff";
-      }
-
-      html += `
-        <div class="savings-history-item">
-          <div class="savings-history-month">${month}月</div>
-          <div class="savings-history-right">
-            <div class="savings-history-amount">${formatYenNoSignSuffix(item.net)}</div>
-            <div class="savings-history-diff ${diffClass}">${diffText}</div>
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
-  }
-function renderNormalMode() {
-  document.getElementById("monthLabel").textContent = formatMonthLabel(currentData.month);
-
-  const viewModel = getViewModel(currentData, currentMode);
-  renderSummary(viewModel);
-  renderDonutChart(viewModel);
-  renderCategoryList(viewModel);
-}
-
-  function renderAll() {
-  setActiveModeButton();
-  toggleViews();
-
-  if (currentMode === "savings") {
-    renderSavingsChart();
-    renderSavingsHistoryList();
-    return;
+    currentDetailData = data;
+    return true;
   }
 
-  renderNormalMode();
-
-  if (currentMode !== "expense") {
-    currentDetailCategory = null;
-    currentDetailData = null;
-    toggleViews();
-    return;
-  }
-
-  if (currentDetailCategory && currentDetailData) {
+  async function openDetailView(categoryName) {
+    currentDetailCategory = categoryName;
+    const ok = await loadDetailData(categoryName);
+    if (!ok) {
+      currentDetailCategory = null;
+      return;
+    }
     renderDetailView();
     toggleViews();
   }
-}
-  async function initializeData() {
-    await Promise.all([
-      loadMonthData(),
-      loadSavingsHistory()
-    ]);
-    renderAll();
+
+  function closeDetailView() {
+    currentDetailCategory = null;
+    currentDetailData = null;
+    toggleViews();
   }
 
- document.addEventListener("DOMContentLoaded", () => {
-  initializeData();
+  function renderDetailDonutChart() {
+    const ctx = document.getElementById("detailDonutChart").getContext("2d");
+    const meta = getExpenseCategoryMeta(currentDetailCategory);
+    const items = (currentDetailData && currentDetailData.chart_subcategories) ? currentDetailData.chart_subcategories : [];
+    const palette = buildSubcategoryPalette(meta.color, Math.max(items.length, 1));
+
+    const labels = items.map(item => item.name);
+    const values = items.map(item => item.total);
+    const isEmpty = values.length === 0;
+
+    if (detailDonutChart) {
+      detailDonutChart.destroy();
+    }
+
+    detailDonutChart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: isEmpty ? [1] : values,
+          backgroundColor: isEmpty ? ["#e5e7eb"] : palette.slice(0, values.length),
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        radius: "82%",
+        layout: {
+          padding: {
+            top: 18,
+            right: 48,
+            bottom: 18,
+            left: 48
+          }
+        },
+        cutout: "58%",
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                if (isEmpty) {
+                  return "データなし";
+                }
+                const label = context.label || "";
+                const value = context.raw || 0;
+                return `${label}: ${formatYen(value)}`;
+              }
+            }
+          },
+          outsideLabelPlugin: {
+            isEmpty: isEmpty
+          }
+        }
+      },
+      plugins: [outsideLabelPlugin]
+    });
+  }
+
+  function renderDetailList() {
+    const list = document.getElementById("detailSubcategoryList");
+    const emptyBox = document.getElementById("detailEmptyBox");
+    list.innerHTML = "";
+
+    const items = (currentDetailData && currentDetailData.subcategories) ? currentDetailData.subcategories : [];
+    const hasPositive = items.some(item => Number(item.total) > 0);
+    const meta = getExpenseCategoryMeta(currentDetailCategory);
+    const palette = buildSubcategoryPalette(meta.color, Math.max(items.length, 1));
+
+    emptyBox.style.display = hasPositive ? "none" : "block";
+
+    items.forEach((item, index) => {
+      const li = document.createElement("li");
+      li.className = "detail-sub-item";
+      li.innerHTML = `
+        <div class="sub-dot" style="background:${palette[index]};"></div>
+        <div class="detail-name">${escapeHtml(item.name)}</div>
+        <div class="detail-amount">${formatYen(item.total)}</div>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function renderDetailView() {
+    if (!currentDetailCategory || !currentDetailData) {
+      return;
+    }
+
+    document.getElementById("detailTitle").textContent = `${currentDetailCategory}の内訳`;
+    document.getElementById("detailMonthLabel").textContent = formatMonthLabel(currentMonth);
+    document.getElementById("detailCenterAmount").textContent = formatYen(currentDetailData.total);
+    document.getElementById("detailTotalLabel").textContent = `${currentDetailCategory}全体`;
+    document.getElementById("detailTotalAmount").textContent = formatYen(currentDetailData.total);
+
+    renderDetailDonutChart();
+    renderDetailList();
+  }
+
+  function renderSavingsChart() {
+    const emptyBox = document.getElementById("savingsEmptyBox");
+    const container = document.getElementById("savingsHistoryContainer");
+    const canvas = document.getElementById("savingsChart");
+    const canvasWrap = canvas.parentElement;
+    const ctx = canvas.getContext("2d");
+
+    const chartItems = (savingsHistoryData && savingsHistoryData.chart) ? savingsHistoryData.chart : [];
+    const hasData = chartItems.length > 0;
+
+    emptyBox.style.display = hasData ? "none" : "block";
+    container.style.display = hasData ? "block" : "none";
+
+    if (savingsChart) {
+      savingsChart.destroy();
+    }
+
+    if (!hasData) {
+      return;
+    }
+
+    const values = chartItems.map(item => Number(item.net || 0));
+    const minValue = Math.min(...values, 0);
+    const maxValue = Math.max(...values, 0);
+    const range = Math.max(maxValue - minValue, 1);
+    const padding = Math.max(range * 0.12, 20000);
+
+    const yMin = minValue - padding;
+    const yMax = maxValue + padding;
+
+    const count = chartItems.length;
+    const barUnitWidth = 128;
+    const chartWidth = Math.max(count * barUnitWidth, 320);
+
+    canvas.width = chartWidth;
+    canvasWrap.style.width = `${chartWidth}px`;
+
+    savingsChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: chartItems.map(item => monthShortLabel(item.month)),
+        datasets: [{
+          data: values,
+          backgroundColor: "#28bfd7",
+          borderRadius: 0,
+          maxBarThickness: 76,
+          categoryPercentage: 0.72,
+          barPercentage: 0.9
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 36,
+            right: 12,
+            bottom: 0,
+            left: 12
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false,
+              drawBorder: false
+            },
+            border: {
+              display: false
+            },
+            ticks: {
+              color: "#9ca3af",
+              font: {
+                size: 16
+              }
+            }
+          },
+          y: {
+            display: false,
+            min: yMin,
+            max: yMax,
+            grid: {
+              display: false,
+              drawBorder: false
+            },
+            border: {
+              display: false
+            },
+            ticks: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return formatYenNoSignSuffix(context.raw);
+              }
+            }
+          }
+        }
+      },
+      plugins: [
+        {
+          id: "zeroLinePlugin",
+          afterDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            const yScale = scales.y;
+            if (!yScale) return;
+
+            const zeroY = yScale.getPixelForValue(0);
+
+            if (zeroY < chartArea.top || zeroY > chartArea.bottom) return;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#d1d5db";
+            ctx.moveTo(chartArea.left, zeroY);
+            ctx.lineTo(chartArea.right, zeroY);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      ]
+    });
+  }
+
+  function renderSavingsHistory() {
+    const container = document.getElementById("savingsHistoryContainer");
+    container.innerHTML = "";
+
+    const history = (savingsHistoryData && savingsHistoryData.history) ? savingsHistoryData.history : [];
+    if (!history.length) {
+      return;
+    }
+
+    let currentYear = "";
+
+    history.forEach(item => {
+      const [year, month] = item.month.split("-");
+
+      if (year !== currentYear) {
+        currentYear = year;
+        const yearHeader = document.createElement("div");
+        yearHeader.className = "year-header";
+        yearHeader.textContent = `${year}年`;
+        container.appendChild(yearHeader);
+      }
+
+      const row = document.createElement("div");
+      row.className = "savings-history-item";
+
+      const left = document.createElement("div");
+      left.className = "savings-history-month";
+      left.textContent = `${Number(month)}月`;
+
+      const right = document.createElement("div");
+      right.className = "savings-history-right";
+
+      const amount = document.createElement("div");
+      amount.className = "savings-history-amount";
+      amount.textContent = formatYen(item.net);
+
+      const diff = document.createElement("div");
+      diff.className = "savings-history-diff";
+
+      if (item.diff_from_prev === null || typeof item.diff_from_prev === "undefined") {
+        diff.textContent = "—";
+      } else {
+        const diffValue = Number(item.diff_from_prev || 0);
+        diff.textContent = `${diffValue >= 0 ? "+" : "-"}${formatYenNoSignSuffix(Math.abs(diffValue))}`;
+        diff.classList.add(diffValue >= 0 ? "positive-diff" : "negative-diff");
+      }
+
+      right.appendChild(amount);
+      right.appendChild(diff);
+
+      row.appendChild(left);
+      row.appendChild(right);
+
+      container.appendChild(row);
+    });
+  }
+
+  function renderOverview() {
+    if (!currentData) {
+      return;
+    }
+
+    const viewModel = getViewModel(currentData, currentMode);
+
+    document.getElementById("monthLabel").textContent = formatMonthLabel(currentMonth);
+    renderSummary(viewModel);
+    renderCategoryList(viewModel);
+    renderDonutChart(viewModel);
+  }
+
+  function renderCurrentScreen() {
+    setActiveModeButton();
+    toggleViews();
+
+    if (currentMode === "savings") {
+      renderSavingsChart();
+      renderSavingsHistory();
+      return;
+    }
+
+    if (currentDetailCategory && currentMode === "expense") {
+      renderDetailView();
+      return;
+    }
+
+    renderOverview();
+  }
+
+  async function refreshCurrentModeData() {
+    if (currentMode === "savings") {
+      await loadSavingsHistory();
+    } else {
+      await loadMonthData();
+    }
+    renderCurrentScreen();
+  }
 
   document.getElementById("prevMonthBtn").addEventListener("click", async () => {
     currentMonth = shiftMonth(currentMonth, -1);
     await loadMonthData();
-    if (currentMode !== "savings") {
-      renderAll();
-    }
+    renderCurrentScreen();
   });
 
   document.getElementById("nextMonthBtn").addEventListener("click", async () => {
     currentMonth = shiftMonth(currentMonth, 1);
     await loadMonthData();
-    if (currentMode !== "savings") {
-      renderAll();
-    }
-  });
-
-  document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      currentMode = btn.dataset.mode;
-      renderAll();
-    });
-  });
-
-  document.getElementById("detailBackBtn").addEventListener("click", () => {
-    closeDetailView();
+    renderCurrentScreen();
   });
 
   document.getElementById("detailPrevMonthBtn").addEventListener("click", async () => {
     currentMonth = shiftMonth(currentMonth, -1);
     await loadMonthData();
-    renderAll();
+    if (currentDetailCategory) {
+      await loadDetailData(currentDetailCategory);
+    }
+    renderCurrentScreen();
   });
 
   document.getElementById("detailNextMonthBtn").addEventListener("click", async () => {
     currentMonth = shiftMonth(currentMonth, 1);
     await loadMonthData();
-    renderAll();
+    if (currentDetailCategory) {
+      await loadDetailData(currentDetailCategory);
+    }
+    renderCurrentScreen();
   });
-});
+
+  document.getElementById("detailBackBtn").addEventListener("click", () => {
+    closeDetailView();
+    renderCurrentScreen();
+  });
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const nextMode = btn.dataset.mode;
+      if (nextMode === currentMode) return;
+
+      currentMode = nextMode;
+
+      if (currentMode !== "expense") {
+        currentDetailCategory = null;
+        currentDetailData = null;
+      }
+
+      await refreshCurrentModeData();
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await loadMonthData();
+    renderCurrentScreen();
+  });
 </script>
 {% endblock %}

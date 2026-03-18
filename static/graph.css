@@ -1,0 +1,379 @@
+.chevron {
+  cursor: pointer;
+}
+  .graph-shell {
+    max-width: 860px;
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  .graph-card {
+    background: white;
+    border-radius: 22px;
+    padding: 18px 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  }
+
+  .mode-switch-wrap {
+    background: linear-gradient(180deg, #35c6e8 0%, #20bfdc 100%);
+    border-radius: 30px;
+    padding: 10px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 24px rgba(53, 198, 232, .24);
+  }
+
+  .mode-switch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: rgba(255, 255, 255, .9);
+    padding: 10px;
+    border-radius: 999px;
+  }
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: #9aa0a6;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 18px 0;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .mode-btn.active {
+    background: #dfe7ea;
+    color: #22b8cf;
+  }
+
+  .month-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .month-nav-btn {
+    border: none;
+    background: transparent;
+    color: #22c55e;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .month-label {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+ .donut-wrap {
+  width: min(100%, 560px);
+  margin: 0 auto 18px;
+  position: relative;
+}
+  .center-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .center-label-inner {
+    text-align: center;
+  }
+
+  .center-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+
+  .center-amount {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .summary-list,
+  .category-list,
+  .savings-history-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .summary-item,
+  .category-item {
+    display: grid;
+    align-items: center;
+    border-top: 1px solid #e5e7eb;
+    min-height: 68px;
+  }
+
+ .summary-item {
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+  .summary-label {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .summary-amount {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .chevron {
+    color: #c7c9cf;
+    font-size: 34px;
+    line-height: 1;
+  }
+
+ .category-item {
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+}
+
+  .category-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .category-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .category-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .category-amount {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .empty-box {
+    border-top: 1px solid #e5e7eb;
+    padding: 28px 12px 8px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 15px;
+  }
+
+  .savings-view {
+    display: none;
+  }
+
+  .savings-view.active {
+    display: block;
+  }
+
+  .normal-view.hidden {
+    display: none;
+  }
+
+  .savings-chart-wrap {
+  margin: 8px 0 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.savings-chart-canvas-wrap {
+  width: fit-content;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+#savingsChart {
+  display: block;
+}
+  .year-header {
+    border-top: 1px solid #9ca3af;
+    padding: 8px 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+ .savings-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, auto);
+  gap: 16px;
+  align-items: center;
+  border-top: 1px solid #e5e7eb;
+  padding: 18px 0;
+}
+
+  .savings-history-month {
+    font-size: 24px;
+    color: #374151;
+  }
+
+  .savings-history-right {
+  text-align: right;
+  min-width: 0;
+}
+  .savings-history-amount {
+  font-size: clamp(24px, 4vw, 30px);
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+  .savings-history-diff {
+  margin-top: 4px;
+  font-size: clamp(14px, 2.4vw, 18px);
+  color: #c7c9cf;
+  white-space: nowrap;
+}
+
+  .positive-diff {
+    color: #9ca3af;
+  }
+
+  .negative-diff {
+    color: #f97316;
+  }
+
+  .savings-note {
+    margin-top: 6px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+  }
+    
+
+  @media (max-width: 640px) {
+    .graph-card {
+      padding: 16px 12px;
+      border-radius: 16px;
+    }
+
+    .mode-btn {
+      font-size: 16px;
+      padding: 16px 0;
+    }
+
+    .month-label {
+      font-size: 18px;
+    }
+
+    .summary-label,
+    .category-name {
+      font-size: 18px;
+    }
+
+    .summary-amount,
+    .category-amount {
+      font-size: 20px;
+    }
+
+    .donut-wrap {
+      width: min(100%, 420px);
+    }
+
+    .savings-history-month {
+      font-size: 20px;
+    }
+
+    .savings-history-amount {
+      font-size: 24px;
+    }
+
+    .savings-history-diff {
+      font-size: 16px;
+    }
+  }
+
+  .detail-view {
+    display: none;
+  }
+
+  .detail-view.active {
+    display: block;
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .detail-back-btn {
+    border: none;
+    background: transparent;
+    color: #111827;
+    font-size: 34px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: auto;
+  }
+
+  .detail-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .detail-total-row,
+  .detail-sub-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 68px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .detail-total-row {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .sub-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+  }
+
+  .detail-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .detail-amount {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .detail-empty-box {
+    border-top: 1px solid #e5e7eb;
+    padding: 28px 12px 8px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 15px;
+    display: none;
+  }

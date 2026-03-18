@@ -4,234 +4,8 @@
 
 {% block head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-
-<style>
- .memo-line {
-  grid-column: 1 / -1;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-  margin-top: -2px;
-}
-main.calendar-layout {
-    max-width: 980px;
-    margin: 12px auto;
-    padding: 0 12px;
-    display: grid;
-    gap: 12px;
-    grid-template-columns: 1.4fr 1fr;
-  }
-
-  #calendar {
-    padding: 6px;
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  input, select {
-    width: 100%;
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    box-sizing: border-box;
-  }
-
-  button {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    background: #14b8c6;
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  button:hover {
-    filter: brightness(0.95);
-  }
-.detail-meta {
-  margin-top: 8px;
-}
-
-.detail-meta .memo-text,
-.detail-meta .income-text,
-.detail-meta .expense-text {
-  margin-left: 0;
-}
-  .type-switch {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .type-switch button {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 12px;
-    background: #e5e7eb;
-    color: #111827;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .type-switch button.active {
-    background: #14b8c6;
-    color: white;
-  }
-
-  .muted {
-    color: #6b7280;
-    font-size: 12px;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 8px 0 0;
-  }
-
- li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 8px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.detail-main {
-  min-width: 0;
-}
-
-.amt {
-  font-weight: 800;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.delete-btn {
-  width: auto;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: #ef4444;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-  .tag {
-    font-size: 13px;
-    font-weight: 700;
-    padding: 6px 10px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid transparent;
-  }
-
-  .cat-icon {
-    font-size: 15px;
-    line-height: 1;
-  }
-
-
-  .danger {
-    background: #ef4444;
-  }
-
-  .danger:hover {
-    filter: brightness(0.95);
-  }
-
-  .actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .income-text {
-    color: #2563eb;
-    font-weight: 700;
-    margin-left: 8px;
-  }
-
-  .expense-text {
-    color: #dc2626;
-    font-weight: 700;
-    margin-left: 8px;
-  }
-
-  .memo-text {
-    margin-left: 8px;
-    color: #374151;
-  }
-
-  .category-preview {
-  margin-top: 8px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-}
-
-.category-path {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.category-path-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex: 0 0 40px;
-}
-
-.category-path-text {
-  color: #111827;
-  font-weight: 700;
-  font-size: 16px;
-  white-space: nowrap;
-}
-
-.category-path-sep {
-  color: #111827;
-  font-weight: 700;
-}
-
-.category-dual {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  width: 100%;
-}
-
-.category-dual.single {
-  grid-template-columns: 1fr;
-}
-
-  @media (max-width: 900px) {
-    main.calendar-layout {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
 {% endblock %}
 
 {% block body %}
@@ -316,6 +90,20 @@ main.calendar-layout {
   let txType = "expense";
   let calendar;
 
+  function getCsrfToken() {
+    const el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.getAttribute("content") : "";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function hexToRgb(hex) {
     const value = hex.replace("#", "");
     const normalized = value.length === 3
@@ -349,29 +137,31 @@ main.calendar-layout {
       color: "#94A3B8"
     };
   }
+
   function makeCategoryBadge(meta, label, extraClass = "") {
-  const bg = withAlpha(meta.color, 0.16);
+    const bg = withAlpha(meta.color, 0.16);
 
-  return `
-    <span class="tag ${extraClass}" style="background:${bg}; color:${meta.color};">
-      <span class="cat-icon">${meta.icon}</span>
-      <span>${label}</span>
-    </span>
-  `;
-}
-  function makeCategoryPath(meta, categoryLabel, subcategoryLabel = "") {
-  const iconBg = withAlpha(meta.color, 0.16);
-
-  return `
-    <span class="category-path">
-      <span class="category-path-icon" style="background:${iconBg};">
-        <span class="cat-icon" style="color:${meta.color};">${meta.icon}</span>
+    return `
+      <span class="tag ${extraClass}" style="background:${bg}; color:${meta.color};">
+        <span class="cat-icon">${escapeHtml(meta.icon)}</span>
+        <span>${escapeHtml(label)}</span>
       </span>
-      <span class="category-path-text">${categoryLabel}</span>
-      ${subcategoryLabel ? `<span class="category-path-sep">&gt;</span><span class="category-path-text">${subcategoryLabel}</span>` : ""}
-    </span>
-  `;
-}
+    `;
+  }
+
+  function makeCategoryPath(meta, categoryLabel, subcategoryLabel = "") {
+    const iconBg = withAlpha(meta.color, 0.16);
+
+    return `
+      <span class="category-path">
+        <span class="category-path-icon" style="background:${iconBg};">
+          <span class="cat-icon" style="color:${meta.color};">${escapeHtml(meta.icon)}</span>
+        </span>
+        <span class="category-path-text">${escapeHtml(categoryLabel)}</span>
+        ${subcategoryLabel ? `<span class="category-path-sep">&gt;</span><span class="category-path-text">${escapeHtml(subcategoryLabel)}</span>` : ""}
+      </span>
+    `;
+  }
 
   function updateCategoryOptions() {
     const select = $("category");
@@ -427,18 +217,18 @@ main.calendar-layout {
     updateCategoryPreview();
   }
 
- function updateCategoryPreview() {
-  const categoryName = $("category").value;
-  const meta = getCategoryMeta(txType, categoryName);
-  const preview = $("categoryPreview");
+  function updateCategoryPreview() {
+    const categoryName = $("category").value;
+    const meta = getCategoryMeta(txType, categoryName);
+    const preview = $("categoryPreview");
 
-  if (txType === "expense") {
-    const subcategory = $("subcategory").value || "";
-    preview.innerHTML = makeCategoryPath(meta, categoryName, subcategory);
-  } else {
-    preview.innerHTML = makeCategoryPath(meta, categoryName);
+    if (txType === "expense") {
+      const subcategory = $("subcategory").value || "";
+      preview.innerHTML = makeCategoryPath(meta, categoryName, subcategory);
+    } else {
+      preview.innerHTML = makeCategoryPath(meta, categoryName);
+    }
   }
-}
 
   function updateTypeUI() {
     if (txType === "expense") {
@@ -460,6 +250,40 @@ main.calendar-layout {
     loadDay(d);
   }
 
+  function buildDetailRow(it) {
+    const li = document.createElement("li");
+    const meta = getCategoryMeta(it.type, it.category);
+
+    const detailMain = document.createElement("div");
+    detailMain.className = "detail-main";
+    detailMain.innerHTML = it.type === "expense"
+      ? makeCategoryPath(meta, it.category, it.subcategory || "")
+      : makeCategoryPath(meta, it.category);
+
+    const amount = document.createElement("span");
+    amount.className = "amt";
+    amount.textContent = `${Number(it.amount).toLocaleString()}円`;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-btn";
+    deleteButton.type = "button";
+    deleteButton.textContent = "削除";
+    deleteButton.addEventListener("click", () => deleteTx(it.id, it.tx_date));
+
+    li.appendChild(detailMain);
+    li.appendChild(amount);
+    li.appendChild(deleteButton);
+
+    if (it.memo) {
+      const memo = document.createElement("div");
+      memo.className = "memo-line";
+      memo.textContent = `(${it.memo})`;
+      li.appendChild(memo);
+    }
+
+    return li;
+  }
+
   async function loadDay(d) {
     const res = await fetch(`/api/day?date=${encodeURIComponent(d)}`);
 
@@ -477,47 +301,29 @@ main.calendar-layout {
       return;
     }
 
-  for (const it of items) {
-  const memo = it.memo
-    ? `<div class="memo-line">(${it.memo})</div>`
-    : "";
-
-  const meta = getCategoryMeta(it.type, it.category);
-
-  const categoryLine = it.type === "expense"
-    ? makeCategoryPath(meta, it.category, it.subcategory || "")
-    : makeCategoryPath(meta, it.category);
-
-  const left = `
-    <div class="detail-main">
-      ${categoryLine}
-    </div>
-  `;
-
-  const amount = `
-    <span class="amt">${Number(it.amount).toLocaleString()}円</span>
-  `;
-
-  const deleteButton = `
-    <button class="delete-btn"
-      onclick="deleteTx(${it.id}, '${it.tx_date}')">削除</button>
-  `;
-
-  const li = document.createElement("li");
-  li.innerHTML = left + amount + deleteButton + memo;
-  ul.appendChild(li);
-}
+    for (const it of items) {
+      ul.appendChild(buildDetailRow(it));
+    }
   }
 
   async function deleteTx(id, d) {
     const res = await fetch("/api/delete", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({id})
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": getCsrfToken()
+      },
+      body: JSON.stringify({ id })
     });
 
     if (res.redirected) {
       window.location.href = res.url;
+      return;
+    }
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      alert("削除に失敗: " + (e.error || res.statusText));
       return;
     }
 
@@ -550,7 +356,10 @@ main.calendar-layout {
 
     const res = await fetch("/api/add", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": getCsrfToken()
+      },
       body: JSON.stringify(payload)
     });
 
