@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-import sqlite3
 import os
 import secrets
 import hmac
 from datetime import datetime, date, timedelta
 from functools import wraps
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -29,6 +31,37 @@ def load_secret_key():
         f.write(generated)
     return generated
 
+
+def normalize_database_url(url: str) -> str:
+    url = (url or "").strip()
+    if not url:
+        return f"sqlite:///{DB_PATH}"
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql://") and not url.startswith("postgresql+psycopg://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
+DATABASE_URL = normalize_database_url(os.environ.get("DATABASE_URL", ""))
+IS_SQLITE = DATABASE_URL.startswith("sqlite:")
+IS_POSTGRES = DATABASE_URL.startswith("postgresql+psycopg:")
+
+if IS_SQLITE:
+    engine = create_engine(
+        DATABASE_URL,
+        future=True,
+        connect_args={
+            "check_same_thread": False,
+            "timeout": 10
+        }
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        future=True,
+        pool_pre_ping=True
+    )
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -94,70 +127,106 @@ LOGIN_MAX_ATTEMPTS = 8
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return engine.connect()
 
 
 def init_db():
-    conn = get_conn()
-    cur = conn.cursor()
+    with engine.begin() as conn:
+        if IS_SQLITE:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS transactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    tx_date TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    subcategory TEXT,
+                    memo TEXT,
+                    type TEXT NOT NULL DEFAULT 'expense',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """))
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            tx_date TEXT NOT NULL,
-            amount INTEGER NOT NULL,
-            category TEXT NOT NULL,
-            subcategory TEXT,
-            memo TEXT,
-            type TEXT NOT NULL DEFAULT 'expense',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS budgets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    month TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT '',
+                    amount INTEGER NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, month, category),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """))
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS budgets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            month TEXT NOT NULL,
-            category TEXT NOT NULL DEFAULT '',
-            amount INTEGER NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, month, category),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS login_attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    attempted_at TEXT NOT NULL
+                )
+            """))
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS login_attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            ip_address TEXT NOT NULL,
-            attempted_at TEXT NOT NULL
-        )
-    """)
+            rows = conn.execute(text("PRAGMA table_info(transactions)")).mappings().all()
+            existing_columns = {row["name"] for row in rows}
+            if "subcategory" not in existing_columns:
+                conn.execute(text("ALTER TABLE transactions ADD COLUMN subcategory TEXT"))
+        else:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGSERIAL PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
 
-    cur.execute("PRAGMA table_info(transactions)")
-    existing_columns = {row["name"] for row in cur.fetchall()}
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS transactions (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id),
+                    tx_date TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    subcategory TEXT,
+                    memo TEXT,
+                    type TEXT NOT NULL DEFAULT 'expense',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
 
-    if "subcategory" not in existing_columns:
-        cur.execute("ALTER TABLE transactions ADD COLUMN subcategory TEXT")
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS budgets (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id),
+                    month TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT '',
+                    amount INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, month, category)
+                )
+            """))
 
-    conn.commit()
-    conn.close()
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS login_attempts (
+                    id BIGSERIAL PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    attempted_at TEXT NOT NULL
+                )
+            """))
 
 
 init_db()
@@ -180,38 +249,47 @@ def get_client_ip():
 
 
 def cleanup_old_login_attempts(conn):
-    cutoff = datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)
+    cutoff = (datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)).isoformat(timespec="seconds")
     conn.execute(
-        "DELETE FROM login_attempts WHERE attempted_at < ?",
-        (cutoff.isoformat(timespec="seconds"),)
+        text("DELETE FROM login_attempts WHERE attempted_at < :cutoff"),
+        {"cutoff": cutoff}
     )
 
 
 def count_recent_login_attempts(conn, username, ip_address):
     cleanup_old_login_attempts(conn)
-    cutoff = datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)
-    row = conn.execute("""
+    cutoff = (datetime.utcnow() - timedelta(seconds=LOGIN_WINDOW_SECONDS)).isoformat(timespec="seconds")
+    row = conn.execute(text("""
         SELECT COUNT(*) AS cnt
         FROM login_attempts
-        WHERE username = ? AND ip_address = ? AND attempted_at >= ?
-    """, (username, ip_address, cutoff.isoformat(timespec="seconds"))).fetchone()
+        WHERE username = :username AND ip_address = :ip_address AND attempted_at >= :cutoff
+    """), {
+        "username": username,
+        "ip_address": ip_address,
+        "cutoff": cutoff
+    }).mappings().fetchone()
     return int(row["cnt"] or 0)
 
 
 def record_failed_login(conn, username, ip_address):
-    conn.execute("""
+    conn.execute(text("""
         INSERT INTO login_attempts (username, ip_address, attempted_at)
-        VALUES (?, ?, ?)
-    """, (username, ip_address, datetime.utcnow().isoformat(timespec="seconds")))
-    conn.commit()
+        VALUES (:username, :ip_address, :attempted_at)
+    """), {
+        "username": username,
+        "ip_address": ip_address,
+        "attempted_at": datetime.utcnow().isoformat(timespec="seconds")
+    })
 
 
 def clear_login_attempts(conn, username, ip_address):
-    conn.execute("""
+    conn.execute(text("""
         DELETE FROM login_attempts
-        WHERE username = ? AND ip_address = ?
-    """, (username, ip_address))
-    conn.commit()
+        WHERE username = :username AND ip_address = :ip_address
+    """), {
+        "username": username,
+        "ip_address": ip_address
+    })
 
 
 def get_month_range(month_str):
@@ -264,13 +342,15 @@ def build_subcategory_totals(category_name, rows):
 
 
 def get_budget_amounts_for_month(conn, user_id, month):
-    cur = conn.cursor()
-    cur.execute("""
+    rows = conn.execute(text("""
         SELECT category, amount
         FROM budgets
-        WHERE user_id = ? AND month = ?
-    """, (user_id, month))
-    rows = cur.fetchall()
+        WHERE user_id = :user_id AND month = :month
+    """), {
+        "user_id": user_id,
+        "month": month
+    }).mappings().fetchall()
+
     return {
         row["category"]: int(row["amount"] or 0)
         for row in rows
@@ -299,29 +379,35 @@ def build_budget_info(spent, budget_amount):
 
 
 def get_expense_total_for_budget(conn, user_id, start_date, end_date, category=""):
-    cur = conn.cursor()
-
     if category:
-        cur.execute("""
+        row = conn.execute(text("""
             SELECT COALESCE(SUM(amount), 0) AS total
             FROM transactions
-            WHERE user_id = ?
+            WHERE user_id = :user_id
               AND type = 'expense'
-              AND category = ?
-              AND tx_date >= ?
-              AND tx_date < ?
-        """, (user_id, category, start_date, end_date))
+              AND category = :category
+              AND tx_date >= :start_date
+              AND tx_date < :end_date
+        """), {
+            "user_id": user_id,
+            "category": category,
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchone()
     else:
-        cur.execute("""
+        row = conn.execute(text("""
             SELECT COALESCE(SUM(amount), 0) AS total
             FROM transactions
-            WHERE user_id = ?
+            WHERE user_id = :user_id
               AND type = 'expense'
-              AND tx_date >= ?
-              AND tx_date < ?
-        """, (user_id, start_date, end_date))
+              AND tx_date >= :start_date
+              AND tx_date < :end_date
+        """), {
+            "user_id": user_id,
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchone()
 
-    row = cur.fetchone()
     return int(row["total"] or 0)
 
 
@@ -415,25 +501,26 @@ def register():
             error = "パスワードは8文字以上で入力してください。"
             return render_template("register.html", error=error)
 
-        conn = get_conn()
-        cur = conn.cursor()
-
-        cur.execute("SELECT id FROM users WHERE username = ?", (username,))
-        existing = cur.fetchone()
-
-        if existing:
-            conn.close()
-            error = "そのユーザー名はすでに使われています。"
-            return render_template("register.html", error=error)
-
         password_hash = generate_password_hash(password)
 
-        cur.execute(
-            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            (username, password_hash)
-        )
-        conn.commit()
-        conn.close()
+        try:
+            with engine.begin() as conn:
+                existing = conn.execute(
+                    text("SELECT id FROM users WHERE username = :username"),
+                    {"username": username}
+                ).mappings().fetchone()
+
+                if existing:
+                    error = "そのユーザー名はすでに使われています。"
+                    return render_template("register.html", error=error)
+
+                conn.execute(
+                    text("INSERT INTO users (username, password_hash) VALUES (:username, :password_hash)"),
+                    {"username": username, "password_hash": password_hash}
+                )
+        except IntegrityError:
+            error = "そのユーザー名はすでに使われています。"
+            return render_template("register.html", error=error)
 
         return redirect(url_for("login"))
 
@@ -453,25 +540,22 @@ def login():
         password = request.form.get("password", "").strip()
         ip_address = get_client_ip()
 
-        conn = get_conn()
+        with engine.begin() as conn:
+            if count_recent_login_attempts(conn, username, ip_address) >= LOGIN_MAX_ATTEMPTS:
+                error = "試行回数が多すぎます。しばらく待ってから再度お試しください。"
+                return render_template("login.html", error=error)
 
-        if count_recent_login_attempts(conn, username, ip_address) >= LOGIN_MAX_ATTEMPTS:
-            conn.close()
-            error = "試行回数が多すぎます。しばらく待ってから再度お試しください。"
-            return render_template("login.html", error=error)
+            user = conn.execute(
+                text("SELECT id, username, password_hash FROM users WHERE username = :username"),
+                {"username": username}
+            ).mappings().fetchone()
 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
-        user = cur.fetchone()
+            if user is None or not check_password_hash(user["password_hash"], password):
+                record_failed_login(conn, username, ip_address)
+                error = "ユーザー名またはパスワードが違います。"
+                return render_template("login.html", error=error)
 
-        if user is None or not check_password_hash(user["password_hash"], password):
-            record_failed_login(conn, username, ip_address)
-            conn.close()
-            error = "ユーザー名またはパスワードが違います。"
-            return render_template("login.html", error=error)
-
-        clear_login_attempts(conn, username, ip_address)
-        conn.close()
+            clear_login_attempts(conn, username, ip_address)
 
         session.clear()
         session.permanent = True
@@ -539,17 +623,18 @@ def api_events():
     if not start or not end:
         return jsonify([])
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT tx_date, type, SUM(amount) AS total
-        FROM transactions
-        WHERE user_id = ? AND tx_date >= ? AND tx_date < ?
-        GROUP BY tx_date, type
-        ORDER BY tx_date, type
-    """, (session["user_id"], start[:10], end[:10]))
-    rows = cur.fetchall()
-    conn.close()
+    with get_conn() as conn:
+        rows = conn.execute(text("""
+            SELECT tx_date, type, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id AND tx_date >= :start_date AND tx_date < :end_date
+            GROUP BY tx_date, type
+            ORDER BY tx_date, type
+        """), {
+            "user_id": session["user_id"],
+            "start_date": start[:10],
+            "end_date": end[:10]
+        }).mappings().fetchall()
 
     events = []
     for r in rows:
@@ -590,16 +675,16 @@ def api_day():
     except Exception:
         return jsonify([])
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, tx_date, amount, category, subcategory, memo, type
-        FROM transactions
-        WHERE user_id = ? AND tx_date = ?
-        ORDER BY id DESC
-    """, (session["user_id"], tx_date))
-    rows = cur.fetchall()
-    conn.close()
+    with get_conn() as conn:
+        rows = conn.execute(text("""
+            SELECT id, tx_date, amount, category, subcategory, memo, type
+            FROM transactions
+            WHERE user_id = :user_id AND tx_date = :tx_date
+            ORDER BY id DESC
+        """), {
+            "user_id": session["user_id"],
+            "tx_date": tx_date
+        }).mappings().fetchall()
 
     return jsonify([dict(r) for r in rows])
 
@@ -615,46 +700,52 @@ def api_graph_month():
     except Exception:
         return jsonify({"ok": False, "error": "month is invalid"}), 400
 
-    conn = get_conn()
-    cur = conn.cursor()
+    with get_conn() as conn:
+        totals_rows = conn.execute(text("""
+            SELECT type, COALESCE(SUM(amount), 0) AS total
+            FROM transactions
+            WHERE user_id = :user_id AND tx_date >= :start_date AND tx_date < :end_date
+            GROUP BY type
+        """), {
+            "user_id": session["user_id"],
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchall()
 
-    cur.execute("""
-        SELECT type, COALESCE(SUM(amount), 0) AS total
-        FROM transactions
-        WHERE user_id = ? AND tx_date >= ? AND tx_date < ?
-        GROUP BY type
-    """, (session["user_id"], start_date, end_date))
-    totals_rows = cur.fetchall()
+        income_total = 0
+        expense_total = 0
 
-    income_total = 0
-    expense_total = 0
+        for row in totals_rows:
+            if row["type"] == "income":
+                income_total = int(row["total"] or 0)
+            elif row["type"] == "expense":
+                expense_total = int(row["total"] or 0)
 
-    for row in totals_rows:
-        if row["type"] == "income":
-            income_total = int(row["total"] or 0)
-        elif row["type"] == "expense":
-            expense_total = int(row["total"] or 0)
+        expense_rows = conn.execute(text("""
+            SELECT category, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id AND type = 'expense' AND tx_date >= :start_date AND tx_date < :end_date
+            GROUP BY category
+            ORDER BY total DESC, category
+        """), {
+            "user_id": session["user_id"],
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchall()
 
-    cur.execute("""
-        SELECT category, SUM(amount) AS total
-        FROM transactions
-        WHERE user_id = ? AND type = 'expense' AND tx_date >= ? AND tx_date < ?
-        GROUP BY category
-        ORDER BY total DESC, category
-    """, (session["user_id"], start_date, end_date))
-    expense_rows = cur.fetchall()
+        income_rows = conn.execute(text("""
+            SELECT category, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id AND type = 'income' AND tx_date >= :start_date AND tx_date < :end_date
+            GROUP BY category
+            ORDER BY total DESC, category
+        """), {
+            "user_id": session["user_id"],
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchall()
 
-    cur.execute("""
-        SELECT category, SUM(amount) AS total
-        FROM transactions
-        WHERE user_id = ? AND type = 'income' AND tx_date >= ? AND tx_date < ?
-        GROUP BY category
-        ORDER BY total DESC, category
-    """, (session["user_id"], start_date, end_date))
-    income_rows = cur.fetchall()
-
-    budget_map = get_budget_amounts_for_month(conn, session["user_id"], month)
-    conn.close()
+        budget_map = get_budget_amounts_for_month(conn, session["user_id"], month)
 
     expense_categories = build_category_totals(expense_rows, CATEGORY_DATA["expense"])
     income_categories = build_category_totals(income_rows, CATEGORY_DATA["income"])
@@ -706,30 +797,33 @@ def api_graph_subcategory_month():
     if category not in SUBCATEGORY_DATA:
         return jsonify({"ok": False, "error": "category is invalid"}), 400
 
-    conn = get_conn()
-    cur = conn.cursor()
+    with get_conn() as conn:
+        rows = conn.execute(text("""
+            SELECT COALESCE(subcategory, 'その他') AS subcategory, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id
+              AND type = 'expense'
+              AND category = :category
+              AND tx_date >= :start_date
+              AND tx_date < :end_date
+            GROUP BY COALESCE(subcategory, 'その他')
+            ORDER BY total DESC, subcategory
+        """), {
+            "user_id": session["user_id"],
+            "category": category,
+            "start_date": start_date,
+            "end_date": end_date
+        }).mappings().fetchall()
 
-    cur.execute("""
-        SELECT COALESCE(subcategory, 'その他') AS subcategory, SUM(amount) AS total
-        FROM transactions
-        WHERE user_id = ?
-          AND type = 'expense'
-          AND category = ?
-          AND tx_date >= ?
-          AND tx_date < ?
-        GROUP BY COALESCE(subcategory, 'その他')
-        ORDER BY total DESC, subcategory
-    """, (session["user_id"], category, start_date, end_date))
-    rows = cur.fetchall()
-
-    cur.execute("""
-        SELECT amount
-        FROM budgets
-        WHERE user_id = ? AND month = ? AND category = ?
-    """, (session["user_id"], month, category))
-    budget_row = cur.fetchone()
-
-    conn.close()
+        budget_row = conn.execute(text("""
+            SELECT amount
+            FROM budgets
+            WHERE user_id = :user_id AND month = :month AND category = :category
+        """), {
+            "user_id": session["user_id"],
+            "month": month,
+            "category": category
+        }).mappings().fetchone()
 
     subcategories = build_subcategory_totals(category, rows)
     chart_subcategories = [item for item in subcategories if item["total"] > 0]
@@ -776,20 +870,20 @@ def api_budget():
     if category and category not in EXPENSE_CATEGORY_NAMES:
         return jsonify({"ok": False, "error": "category is invalid"}), 400
 
-    conn = get_conn()
-    cur = conn.cursor()
-
     if request.method == "GET":
-        cur.execute("""
-            SELECT amount
-            FROM budgets
-            WHERE user_id = ? AND month = ? AND category = ?
-        """, (session["user_id"], month, category))
-        row = cur.fetchone()
+        with get_conn() as conn:
+            row = conn.execute(text("""
+                SELECT amount
+                FROM budgets
+                WHERE user_id = :user_id AND month = :month AND category = :category
+            """), {
+                "user_id": session["user_id"],
+                "month": month,
+                "category": category
+            }).mappings().fetchone()
 
-        budget_amount = int(row["amount"] or 0) if row else 0
-        spent = get_expense_total_for_budget(conn, session["user_id"], start_date, end_date, category)
-        conn.close()
+            budget_amount = int(row["amount"] or 0) if row else 0
+            spent = get_expense_total_for_budget(conn, session["user_id"], start_date, end_date, category)
 
         return jsonify({
             "ok": True,
@@ -806,19 +900,22 @@ def api_budget():
         if amount < 0:
             raise ValueError
     except Exception:
-        conn.close()
         return jsonify({"ok": False, "error": "amount must be a non-negative integer"}), 400
 
-    cur.execute("""
-        INSERT INTO budgets (user_id, month, category, amount)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id, month, category)
-        DO UPDATE SET amount = excluded.amount
-    """, (session["user_id"], month, category, amount))
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO budgets (user_id, month, category, amount)
+            VALUES (:user_id, :month, :category, :amount)
+            ON CONFLICT(user_id, month, category)
+            DO UPDATE SET amount = EXCLUDED.amount
+        """), {
+            "user_id": session["user_id"],
+            "month": month,
+            "category": category,
+            "amount": amount
+        })
 
-    conn.commit()
-    spent = get_expense_total_for_budget(conn, session["user_id"], start_date, end_date, category)
-    conn.close()
+        spent = get_expense_total_for_budget(conn, session["user_id"], start_date, end_date, category)
 
     return jsonify({
         "ok": True,
@@ -840,18 +937,27 @@ def api_savings_history():
 
     months = max(1, min(months, 24))
 
-    conn = get_conn()
-    cur = conn.cursor()
+    if IS_SQLITE:
+        history_sql = text("""
+            SELECT substr(tx_date, 1, 7) AS ym, type, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id
+            GROUP BY ym, type
+            ORDER BY ym ASC
+        """)
+    else:
+        history_sql = text("""
+            SELECT substring(tx_date from 1 for 7) AS ym, type, SUM(amount) AS total
+            FROM transactions
+            WHERE user_id = :user_id
+            GROUP BY ym, type
+            ORDER BY ym ASC
+        """)
 
-    cur.execute("""
-        SELECT substr(tx_date, 1, 7) AS ym, type, SUM(amount) AS total
-        FROM transactions
-        WHERE user_id = ?
-        GROUP BY ym, type
-        ORDER BY ym ASC
-    """, (session["user_id"],))
-    rows = cur.fetchall()
-    conn.close()
+    with get_conn() as conn:
+        rows = conn.execute(history_sql, {
+            "user_id": session["user_id"]
+        }).mappings().fetchall()
 
     if not rows:
         return jsonify({
@@ -960,22 +1066,19 @@ def api_add():
             return jsonify({"ok": False, "error": "category is invalid"}), 400
         subcategory = ""
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO transactions (user_id, tx_date, amount, category, subcategory, memo, type)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        session["user_id"],
-        tx_date,
-        amount,
-        category,
-        subcategory if tx_type == "expense" else None,
-        memo,
-        tx_type
-    ))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO transactions (user_id, tx_date, amount, category, subcategory, memo, type)
+            VALUES (:user_id, :tx_date, :amount, :category, :subcategory, :memo, :tx_type)
+        """), {
+            "user_id": session["user_id"],
+            "tx_date": tx_date,
+            "amount": amount,
+            "category": category,
+            "subcategory": subcategory if tx_type == "expense" else None,
+            "memo": memo,
+            "tx_type": tx_type
+        })
 
     return jsonify({"ok": True})
 
@@ -995,15 +1098,15 @@ def api_delete():
     except Exception:
         return jsonify({"ok": False, "error": "id is invalid"}), 400
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        DELETE FROM transactions
-        WHERE id = ? AND user_id = ?
-    """, (tx_id, session["user_id"]))
-    conn.commit()
-    deleted = cur.rowcount
-    conn.close()
+    with engine.begin() as conn:
+        result = conn.execute(text("""
+            DELETE FROM transactions
+            WHERE id = :tx_id AND user_id = :user_id
+        """), {
+            "tx_id": tx_id,
+            "user_id": session["user_id"]
+        })
+        deleted = result.rowcount
 
     if deleted == 0:
         return jsonify({"ok": False, "error": "transaction not found"}), 404
