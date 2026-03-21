@@ -239,3 +239,43 @@ select {
     margin-bottom: 2px;
   }
 }
+/* ===== FullCalendar スマホ対応修正 ===== */
+@media (max-width: 640px) {
+
+  /* 全体をはみ出させない */
+  .fc {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* テーブル固定レイアウトにする */
+  .fc-scrollgrid,
+  .fc-scrollgrid table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  /* 各セルを均等に */
+  .fc-col-header-cell,
+  .fc-daygrid-day {
+    width: calc(100% / 7) !important;
+    min-width: 0 !important;
+  }
+
+  /* 曜日・日付の文字を縮める */
+  .fc-col-header-cell-cushion {
+    font-size: 12px !important;
+    padding: 4px 0 !important;
+  }
+
+  .fc-daygrid-day-number {
+    font-size: 12px !important;
+    padding: 2px !important;
+  }
+
+  /* 余白を削る */
+  .fc .fc-daygrid-day-frame {
+    padding: 2px !important;
+  }
+
+}
