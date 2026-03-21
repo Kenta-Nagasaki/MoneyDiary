@@ -472,9 +472,7 @@ def add_security_headers(response):
 
 @app.route("/")
 def index():
-    if "user_id" in session:
-        return redirect(url_for("calendar"))
-    return redirect(url_for("login"))
+    return "OK"
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -527,8 +525,9 @@ def register():
     return render_template("register.html", error=error)
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login")
 def login():
+    return "LOGIN PAGE"
     error = ""
 
     if request.method == "POST":
