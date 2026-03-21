@@ -19,20 +19,27 @@ main.calendar-layout {
   }
 
   .row {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
 
-  input, select {
-    width: 100%;
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    box-sizing: border-box;
-  }
+.row > * {
+  min-width: 0;
+}
+
+input,
+select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
 
   button {
     width: 100%;
@@ -222,3 +229,13 @@ main.calendar-layout {
       grid-template-columns: 1fr;
     }
   }
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .row .muted {
+    margin-bottom: 2px;
+  }
+}
