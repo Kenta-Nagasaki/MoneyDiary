@@ -238,16 +238,16 @@ select {
   .row .muted {
     margin-bottom: 2px;
   }
-}
-@media (max-width: 640px) {
+
   #calendar {
     padding: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
   }
 
   .fc {
-    min-width: 600px;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     font-size: 12px;
   }
 
@@ -277,5 +277,15 @@ select {
 
   .fc .fc-daygrid-day-frame {
     min-height: 56px;
+  }
+
+  input[type="date"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
