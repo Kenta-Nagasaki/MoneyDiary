@@ -239,43 +239,43 @@ select {
     margin-bottom: 2px;
   }
 }
-/* ===== FullCalendar スマホ対応修正 ===== */
 @media (max-width: 640px) {
+  #calendar {
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 
-  /* 全体をはみ出させない */
   .fc {
-    width: 100% !important;
-    max-width: 100% !important;
+    min-width: 600px;
+    font-size: 12px;
   }
 
-  /* テーブル固定レイアウトにする */
-  .fc-scrollgrid,
-  .fc-scrollgrid table {
-    width: 100% !important;
-    table-layout: fixed !important;
+  .fc .fc-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  /* 各セルを均等に */
-  .fc-col-header-cell,
-  .fc-daygrid-day {
-    width: calc(100% / 7) !important;
-    min-width: 0 !important;
+  .fc .fc-toolbar-title {
+    font-size: 16px !important;
   }
 
-  /* 曜日・日付の文字を縮める */
-  .fc-col-header-cell-cushion {
+  .fc .fc-button {
+    font-size: 12px !important;
+    padding: 0.3em 0.5em !important;
+  }
+
+  .fc .fc-col-header-cell-cushion {
     font-size: 12px !important;
     padding: 4px 0 !important;
   }
 
-  .fc-daygrid-day-number {
+  .fc .fc-daygrid-day-number {
     font-size: 12px !important;
-    padding: 2px !important;
+    padding: 4px 6px 0 0 !important;
   }
 
-  /* 余白を削る */
   .fc .fc-daygrid-day-frame {
-    padding: 2px !important;
+    min-height: 56px;
   }
-
 }
