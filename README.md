@@ -147,9 +147,9 @@ Instead of keeping the project limited to a local environment, I deployed it on 
 
  ## Setup
 
-    ```bash
-    git clone https://github.com/Kenta-Nagasaki/MoneyDiary.git
-    cd MoneyDiary
+```bash
+git clone https://github.com/Kenta-Nagasaki/MoneyDiary.git
+cd MoneyDiary
 
-    python -m venv venv
+python -m venv venv
     ```
