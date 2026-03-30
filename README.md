@@ -145,17 +145,11 @@ Instead of keeping the project limited to a local environment, I deployed it on 
 
 ---
 
-## Setup
+ ## Setup
 
-```bash
-git clone https://github.com/Kenta-Nagasaki/MoneyDiary.git
-cd MoneyDiary
+    ```bash
+    git clone https://github.com/Kenta-Nagasaki/MoneyDiary.git
+    cd MoneyDiary
 
-python -m venv venv
-データエクスポート機能
-制作意図
-
-自分が何にお金を使っているのか、どれだけ使いすぎているのか、どれだけ貯金できているのかを把握できていないことが、無駄遣いの原因になると考えました。
-
-そのため本アプリでは、お金の流れを可視化し、
-支出の偏りや予算超過に気づき、次の行動改善につなげられることを目的としています。
+    python -m venv venv
+    ```
