@@ -1,151 +1,152 @@
 # MoneyDiary
 
-## Overview
+## 概要
 
-MoneyDiary is a household budgeting web application designed not only to record daily income and expenses, but also to **visualize spending patterns, budget overruns, and savings trends to support better financial decisions**.
+MoneyDiaryは、日々の収支を記録するだけでなく、**支出の偏り・予算超過・貯金の推移まで可視化し、行動改善につなげることを目的とした家計管理Webアプリ**です。
 
-While existing budgeting apps often provide solid recording features, I felt that they still make it difficult to consistently understand:
+既存の家計簿アプリには記録機能は充実していても、  
+- 予算に対して今どれだけ使っているのか  
+- 何にお金を使いすぎているのか  
+- 結果としてどれだけ貯金できているのか  
 
-- how much I have spent compared to my budget,
-- what categories I am overspending on,
-- and how much I am actually saving as a result.
+を一貫して把握しにくいと感じました。
 
-To address this, I designed this app to combine **ease of continuous use through calendar-based input** with **category-based analysis, budget management, and cumulative savings visualization**, so that users can complete the entire cycle from recording to reflection within a single application.
+そこで本アプリでは、**カレンダー入力による継続しやすさ**と、**カテゴリごとの分析・予算管理・累計貯金推移の可視化**を組み合わせ、記録から振り返りまでを一つのアプリで完結できるように設計しました。
 
 ---
 
 ## URL
 
-The deployed application is available here:
+実際に公開しているアプリはこちらです。
 
 **Demo:** https://moneydiary.onrender.com/
 
-### Test Account
-- Username: `test`
-- Password: `test1234`
+### テストアカウント
+- ユーザー名: `test`
+- パスワード: `test1234`
 
 ---
 
-## Main Features
+## 主な機能
 
-### 1. Calendar-based income and expense input
-Users can click a date and record income or expenses for that day.  
-Instead of using a simple list format, I adopted a calendar-based interface to make daily records easier to view and manage.
+### 1. カレンダー形式での収支入力
+日付をクリックして、その日の収入・支出を記録できます。  
+一覧表ではなくカレンダー形式にすることで、日々の記録を見やすいUIを目指しました。
 
-### 2. Category-based analysis
-Income and expenses are aggregated by category and visualized with graphs.  
-This makes it easier to get an overview of where money is being spent and to notice spending imbalances.
+### 2. カテゴリ別分析
+支出・収入をカテゴリごとに集計し、グラフで可視化します。  
+何にお金を使っているかを俯瞰でき、支出の偏りに気づきやすくしています。
 
-### 3. Subcategory analysis
-Categories can be broken down into more detailed subcategories.  
-For example, users can look beyond “Food” and understand its detailed breakdown, making it easier to identify specific areas for improvement.
+### 3. サブカテゴリ分析
+カテゴリをさらに細かく分けて確認できます。  
+たとえば「食費」だけでなく、その内訳まで見られるため、改善すべきポイントをより具体的に把握できます。
 
-### 4. Budget management
-Users can set both a monthly overall budget and category-specific budgets.  
-By checking progress, remaining budget, and overspending, the app encourages budget-conscious behavior rather than stopping at simple record-keeping.
+### 4. 予算管理
+月全体の予算とカテゴリ別予算を設定できます。  
+進捗・残額・超過状況を確認できるため、「記録するだけ」で終わらず、予算を意識した使い方につなげられます。
 
-### 5. Savings trend visualization
-Instead of showing only monthly income and expenses, the app displays the **cumulative trend of “income − expenses.”**  
-This makes it easier to understand whether overall savings are increasing or decreasing over time.
-
----
-
-## Problem This App Aims to Solve
-
-I believe budgeting often ends with simply entering numbers, and many users stop there.  
-However, what really matters is not the act of recording itself, but **reflecting on spending habits and changing future behavior based on that reflection**.
-
-With this in mind, I designed the app around the following flow:
-
-**Record → Visualize → Notice → Improve**
-
-Rather than being just an expense tracker, this app is intended to **provide useful insights for improving personal financial habits**.
+### 5. 貯金推移の可視化
+月ごとの収支ではなく、**「収入 − 支出」の累計推移**を表示しています。  
+これにより、長期的に見てお金が増えているのか減っているのかを把握しやすくしました。
 
 ---
 
-## Design Considerations
+## このアプリで解決したかった課題
 
-### 1. Input UI designed for continued use
-For an app used on a daily basis, I believed it was important to balance rich functionality with ease of input.  
-For that reason, I centered the input experience around a calendar interface and prioritized intuitive usability.
+家計簿は入力自体が目的になりやすく、記録して終わってしまうことが多いと考えました。  
+しかし本来重要なのは、記録そのものではなく、**そこから自分のお金の使い方を振り返り、次の行動を変えること**です。
 
-### 2. A structure that connects recording and analysis
-If recording and analysis are separated too much, reviewing financial habits becomes cumbersome.  
-In this app, recorded data flows directly into analysis and budget tracking, making regular reflection easier.
+そこで本アプリでは、次の流れにつなげることを意識しました。
 
-### 3. Showing savings as a cumulative trend instead of monthly snapshots
-I felt that looking only at monthly surplus or deficit makes it hard to understand whether money is increasing or decreasing overall.  
-To solve this, savings are displayed as a **cumulative trend** rather than as isolated monthly results.
+**記録 → 可視化 → 気づき → 改善**
 
-### 4. Minimum security measures for a publicly accessible app
-I implemented the following security measures:
-
-- Password hashing
-- CSRF protection
-- Login attempt limiting
-- Security headers
-- Session management
-
-One of the key points of this app is that it was built not just to “work,” but with **deployment to a public environment in mind**.
+単なる収支記録アプリではなく、**家計改善の判断材料を提供するアプリ**として設計しています。
 
 ---
 
-## Tech Stack
+## 設計上の工夫
 
-### Frontend
+### 1. 継続しやすさを重視した入力UI
+日々使うアプリでは、機能の多さと入力のしやすさの両立が重要だと考えました。  
+そのため、収支入力はカレンダーを中心に設計し、直感的に使えることを重視しました。
+
+### 2. 記録と分析を分断しない構成
+記録画面だけ、分析画面だけ、と機能が分かれすぎると振り返りが面倒になります。  
+本アプリでは、記録したデータをそのまま分析や予算確認につなげられる構成にし、日常的に振り返りやすいことを意識しました。
+
+### 3. 単月ではなく累計で貯金状況を見せる
+月ごとの黒字・赤字だけでは、全体としてお金が増えているのかが分かりにくいと考えました。  
+そのため、貯金額は単月収支ではなく、**累計推移**として表示しています。
+
+### 4. 公開を前提とした最低限のセキュリティ対策
+セキュリティ対策として以下を実装しました。
+
+- パスワードのハッシュ化
+- CSRF対策
+- ログイン試行回数制限
+- セキュリティヘッダー設定
+- セッション管理
+
+「動けばよい」で終わらせず、**公開環境を意識した実装**を行った点もこのアプリの特徴です。
+
+---
+
+## 技術構成
+
+### フロントエンド
 - HTML
 - CSS
 - JavaScript
 - Chart.js
 - FullCalendar
 
-### Backend
+### バックエンド
 - Python
 - Flask
 - SQLAlchemy
 
-### Database
-- PostgreSQL (production)
-- SQLite (local development)
+### データベース
+- PostgreSQL（本番環境）
+- SQLite（ローカル開発環境）
 
-*The database connection is switched depending on the environment using `DATABASE_URL`.*
+※ `DATABASE_URL` によって接続先を切り替える構成にしています。
 
-### Infrastructure
+### インフラ
 - Render
 
 ---
 
-## Technical Highlights
+## 技術的に意識した点
 
-### 1. Data management with an ORM
-By using SQLAlchemy, I was able to handle user data, transaction data, and budget data consistently in Python.  
-I aimed for a structure that is easy to improve and extend later.
+### 1. ORMによるデータ管理
+SQLAlchemyを用いることで、ユーザー情報・収支データ・予算データなどをPython側で一貫して扱えるようにしました。  
+データ構造を改善しやすい構成を意識しています。
 
-### 2. Deployment in a form that others can actually use
-Instead of keeping the project limited to a local environment, I deployed it on Render so that **other people can actually access and use it**.
-
----
-
-## Database Design
-
-- `users`: user information
-- `transactions`: income and expense data
-- `budgets`: budget data
-- `login_attempts`: login attempt records
+### 2. 実際に触れられる形での公開
+ローカルで動くだけでなく、Render上にデプロイし、**第三者が実際に操作できる状態**まで持っていきました。  
 
 ---
 
-## Screen Flow / How to Use
+## データベース設計
 
-1. Click any date on the calendar screen  
-2. Enter income or expense data  
-3. Check category-based spending on the graph screen  
-4. View the cumulative savings trend in the savings tab  
-5. Check budgets and usage status on the analysis screen  
+- `users`：ユーザー情報
+- `transactions`：収支データ
+- `budgets`：予算データ
+- `login_attempts`：ログイン試行管理
 
 ---
 
- ## Setup
+## 画面イメージ / 操作の流れ
+
+1. カレンダー画面で任意の日付をクリック  
+2. 収入または支出を入力  
+3. グラフ画面でカテゴリ別の支出を確認  
+4. 貯金額タブで累計推移を確認  
+5. 分析画面で予算と使用状況を確認  
+
+---
+
+## セットアップ
 
 ```bash
 git clone https://github.com/Kenta-Nagasaki/MoneyDiary.git
